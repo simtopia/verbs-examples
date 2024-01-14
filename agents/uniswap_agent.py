@@ -82,7 +82,21 @@ class UniswapAgent:
         )[0][0]
         self.fee = fee
 
-        # external market model
+        # external market model.
+        # we initialise it at the same price as the Uniswap price
+        # Uniswap returns price of token0 in terms of token1
+        slot0 = self.uniswap_pool_abi.slot0.call(
+            self.net, self.net.admin_address, self.uniswap_pool_address, []
+        )[0]
+        sqrt_price_uniswap_x96 = slot0[0]
+
+        if self.token_b == self.token1_address:
+            token_a_price = (sqrt_price_uniswap_x96 / 2**96) ** 2
+            token_b_price = 1
+        else:
+            token_a_price = (2**96 / sqrt_price_uniswap_x96) ** 2
+            token_b_price = 1
+
         self.external_market = Gbm(
             mu=mu,
             sigma=sigma,
@@ -152,7 +166,7 @@ class UniswapAgent:
         else:
             return None
 
-    def update(self, rng: np.random.Generator, network):
+    def update(self, rng: np.random.Generator, *args):
         # get sqrt price from uniswap pool. Uniswap returns price of token0 in terms of token1
         slot0 = self.uniswap_pool_abi.slot0.call(
             self.net, self.address, self.uniswap_pool_address, []

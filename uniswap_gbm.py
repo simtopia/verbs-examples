@@ -1,11 +1,13 @@
 """
-In this example 
+In this example
 """
 
 
+import argparse
+
 import numpy as np
 import verbs
-import argparse
+
 from agents.uniswap_agent import UniswapAgent
 
 WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
@@ -103,6 +105,3 @@ if __name__ == "__main__":
     # run simulation
     runner = verbs.sim.Sim(101, net, [agent])
     results = runner.run(n_steps=100)
-    
-
-
