@@ -31,3 +31,4 @@ allow-direct-references = true
 
 [tool.hatch.envs.dev.scripts]
 run = "python uniswap_gbm.py"
+lint = "pre-commit install && pre-commit run --all-files"
