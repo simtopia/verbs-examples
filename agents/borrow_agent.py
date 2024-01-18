@@ -18,12 +18,13 @@ class BorrowAgent:
     ):
         self.net = network
         self.address = verbs.utils.int_to_address(i)
-        self.net.create_account(self.address, int(1e25))
+        self.net.create_account(self.address, int(1e30))
 
         self.pool_implementation_abi = pool_implementation_abi
         self.pool_address = verbs.utils.hex_to_bytes(pool_address)
         self.oracle_address = verbs.utils.hex_to_bytes(oracle_address)
         self.oracle_abi = oracle_abi
+        self.mintable_erc20_abi = mintable_erc20_abi
 
         self.token_a_address = verbs.utils.hex_to_bytes(
             token_a_address
@@ -45,6 +46,14 @@ class BorrowAgent:
         self.activation_rate = activation_rate
 
     def update(self, rng: np.random.Generator, *args, **kwargs):
+        balance_token_a = self.mintable_erc20_abi.balanceOf.call(
+            self.net,
+            self.address,
+            self.token_a_address,
+            [
+                self.address,
+            ],
+        )[0][0]
         if rng.random() < self.activation_rate:
             if not self.has_supplied:
                 supply_tx = self.pool_implementation_abi.supply.transaction(

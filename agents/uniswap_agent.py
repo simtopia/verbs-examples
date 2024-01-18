@@ -75,10 +75,10 @@ class UniswapAgent:
 
         self.token_b = token_b_address  # stablecoin.
         self.token0_address = self.uniswap_pool_abi.token0.call(
-            self.net, self.net.admin_address, self.uniswap_pool_address, []
+            self.net, self.address, self.uniswap_pool_address, []
         )[0][0]
         self.token1_address = self.uniswap_pool_abi.token1.call(
-            self.net, self.net.admin_address, self.uniswap_pool_address, []
+            self.net, self.address, self.uniswap_pool_address, []
         )[0][0]
         self.fee = fee
 
@@ -86,7 +86,7 @@ class UniswapAgent:
         # we initialise it at the same price as the Uniswap price
         # Uniswap returns price of token0 in terms of token1
         slot0 = self.uniswap_pool_abi.slot0.call(
-            self.net, self.net.admin_address, self.uniswap_pool_address, []
+            self.net, self.address, self.uniswap_pool_address, []
         )[0]
         sqrt_price_uniswap_x96 = slot0[0]
 
@@ -215,7 +215,7 @@ class UniswapAgent:
     def record(self):
         # get sqrt price from uniswap pool. Uniswap returns price of token0 in terms of token1
         slot0 = self.uniswap_pool_abi.slot0.call(
-            self.net, self.net.admin_address, self.uniswap_pool_address, []
+            self.net, self.address, self.uniswap_pool_address, []
         )[0]
         sqrt_price_uniswap_x96 = slot0[0]
 

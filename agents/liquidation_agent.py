@@ -77,9 +77,11 @@ class LiquidationAgent:
                 self.token_b_address,
                 liquidation_address,
                 amount,
-                False,
+                True,
             ],
         )[1]
+
+        print(len(liquidation_call_event[-1][1]))
 
         if liquidation_call_event:
             decoded_liquidation_call_event = (
@@ -87,8 +89,9 @@ class LiquidationAgent:
                     liquidation_call_event[-1][1]
                 )
             )
-            debt_to_cover = decoded_liquidation_call_event[3]
-            liquidated_collateral_amount = decoded_liquidation_call_event[4]
+
+            debt_to_cover = decoded_liquidation_call_event[0]
+            liquidated_collateral_amount = decoded_liquidation_call_event[1]
 
             quote = self.quoter_abi.quoteExactOutputSingle.call(
                 self.net,
