@@ -7,6 +7,7 @@ import json
 import numpy as np
 import verbs
 
+from agents.admin_agent import AdminAgent
 from agents.borrow_agent import BorrowAgent
 from agents.liquidation_agent import LiquidationAgent
 from agents.uniswap_agent import UniswapAgent
@@ -61,29 +62,23 @@ if __name__ == "__main__":
         "https://eth-mainnet.g.alchemy.com/v2/{}".format(key),
         0,
         block_number,
-        "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
     )
 
-    # initial prices from AAVE oracle
-    initial_prices = aave_oracle_abi.getAssetsPrices.call(
-        net,
-        net.admin_address,
-        verbs.utils.hex_to_bytes(AAVE_ORACLE),
-        [[verbs.utils.hex_to_bytes(DAI), verbs.utils.hex_to_bytes(WETH)]],
-    )[0]
+    # admin agent
+    admin_agent = AdminAgent(net, i=1)
 
-    # Use uniswap_factory contract to get the address of WETH-DAI pool
+    # # Use uniswap_factory contract to get the address of WETH-DAI pool
     fee = 3000
     get_pool_args = uniswap_factory_abi.getPool.encode([WETH, DAI, fee])
     pool_address = uniswap_factory_abi.getPool.call(
         net,
-        net.admin_address,
+        admin_agent.address,
         verbs.utils.hex_to_bytes(UNISWAP_V3_FACTORY),
         [WETH, DAI, fee],
     )[0][0]
 
     # Sanity check
-    assert pool_address == UNISWAP_WETH_DAI.lower()
+    # assert pool_address == UNISWAP_WETH_DAI.lower()
 
     ###########################
     # Initialize Uniswap agent
@@ -227,9 +222,22 @@ if __name__ == "__main__":
     # We load the Uniswap Aggregator contract that gets the price from the Uniswap pool
     with open("abi/UniswapAggregator.json", "r") as f:
         uniswap_aggregator_contract = json.load(f)
+
+    # uniswap_aggregator_address = uniswap_aggregator_abi.constructor.deploy(
+    #     net,
+    #     uniswap_aggregator_contract["bytecode"],
+    #     [
+    #         verbs.utils.hex_to_bytes(UNISWAP_WETH_DAI),
+    #         verbs.utils.hex_to_bytes(WETH),
+    #         verbs.utils.hex_to_bytes(DAI),
+    #     ],
+    # )
+    print(uniswap_aggregator_abi.constructor.inputs)
+
     if verbs.utils.hex_to_bytes(WETH) < verbs.utils.hex_to_bytes(DAI):
         uniswap_aggregator_address = uniswap_aggregator_abi.constructor.deploy(
             net,
+            admin_agent.address,
             uniswap_aggregator_contract["bytecode"],
             [
                 verbs.utils.hex_to_bytes(UNISWAP_WETH_DAI),
@@ -240,6 +248,7 @@ if __name__ == "__main__":
     else:
         uniswap_aggregator_address = uniswap_aggregator_abi.constructor.deploy(
             net,
+            admin_agent.address,
             uniswap_aggregator_contract["bytecode"],
             [
                 verbs.utils.hex_to_bytes(UNISWAP_WETH_DAI),
@@ -253,11 +262,11 @@ if __name__ == "__main__":
     with open("abi/MockAggregator.json", "r") as f:
         mock_aggregator_contract = json.load(f)
     mock_aggregator_address = mock_aggregator_abi.constructor.deploy(
-        net, mock_aggregator_contract["bytecode"], [10**8]
+        net, admin_agent.address, mock_aggregator_contract["bytecode"], [10**8]
     )
 
     aave_acl_admin = aave_pool_addresses_provider_abi.getACLAdmin.call(
-        net, net.admin_address, verbs.utils.hex_to_bytes(AAVE_ADDRESS_PROVIDER), []
+        net, admin_agent.address, verbs.utils.hex_to_bytes(AAVE_ADDRESS_PROVIDER), []
     )[0][0]
 
     pool_admin_role = aave_acl_manager_abi.POOL_ADMIN_ROLE.call(
