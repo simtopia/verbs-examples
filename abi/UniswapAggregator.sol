@@ -9,7 +9,7 @@ contract UniswapAggregator {
   address private _uniswap_pool_address;
   bool private _order_tokens_ab;
   // Use this to unscale the price, but also keep 8 decimal places
-  uint256 private constant divisor = uint256(2 ** 96) / uint256(10 ** 4);
+  uint256 private constant divisor = uint256(2 ** 96);
 
   constructor(address uniswapPoolAddress, address tokenA, address tokenB) {
     _uniswap_pool_address = uniswapPoolAddress;
@@ -18,7 +18,7 @@ contract UniswapAggregator {
 
   function latestAnswer() external view returns (int256) {
     (uint256 sqrt_price_x96,,,,,,) = IUniswap(_uniswap_pool_address).slot0();
-    uint256 scaled_price = _order_tokens_ab ? (sqrt_price_x96 / divisor) ** 2 : (divisor / sqrt_price_x96) ** 2;
+    uint256 scaled_price = _order_tokens_ab ? (10 ** 4 * sqrt_price_x96 / divisor) ** 2 : (10 ** 4 * divisor / sqrt_price_x96) ** 2;
     return int256(scaled_price);
   }
 

@@ -223,39 +223,16 @@ if __name__ == "__main__":
     with open("abi/UniswapAggregator.json", "r") as f:
         uniswap_aggregator_contract = json.load(f)
 
-    # uniswap_aggregator_address = uniswap_aggregator_abi.constructor.deploy(
-    #     net,
-    #     uniswap_aggregator_contract["bytecode"],
-    #     [
-    #         verbs.utils.hex_to_bytes(UNISWAP_WETH_DAI),
-    #         verbs.utils.hex_to_bytes(WETH),
-    #         verbs.utils.hex_to_bytes(DAI),
-    #     ],
-    # )
-    print(uniswap_aggregator_abi.constructor.inputs)
-
-    if verbs.utils.hex_to_bytes(WETH) < verbs.utils.hex_to_bytes(DAI):
-        uniswap_aggregator_address = uniswap_aggregator_abi.constructor.deploy(
-            net,
-            admin_agent.address,
-            uniswap_aggregator_contract["bytecode"],
-            [
-                verbs.utils.hex_to_bytes(UNISWAP_WETH_DAI),
-                verbs.utils.hex_to_bytes(WETH),
-                verbs.utils.hex_to_bytes(DAI),
-            ],
-        )
-    else:
-        uniswap_aggregator_address = uniswap_aggregator_abi.constructor.deploy(
-            net,
-            admin_agent.address,
-            uniswap_aggregator_contract["bytecode"],
-            [
-                verbs.utils.hex_to_bytes(UNISWAP_WETH_DAI),
-                verbs.utils.hex_to_bytes(DAI),
-                verbs.utils.hex_to_bytes(WETH),
-            ],
-        )
+    uniswap_aggregator_address = uniswap_aggregator_abi.constructor.deploy(
+        net,
+        admin_agent.address,
+        uniswap_aggregator_contract["bytecode"],
+        [
+            verbs.utils.hex_to_bytes(UNISWAP_WETH_DAI),
+            verbs.utils.hex_to_bytes(WETH),
+            verbs.utils.hex_to_bytes(DAI),
+        ],
+    )
 
     # We load the dummy Mock Aggregator contract that keeps the price of a
     # token constant (that will be our numeraire)
