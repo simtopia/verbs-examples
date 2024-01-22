@@ -3,6 +3,11 @@ import verbs
 
 
 class Gbm:
+    """
+    Geometric brownian motion modelling the price of tokens A and B in USD.
+    We assume that token B is some stablecoin so its price remains constant.
+    """
+
     def __init__(
         self, mu: float, sigma: float, token_a_price: int, token_b_price: int, dt: float
     ):
@@ -45,6 +50,11 @@ class Gbm:
 
 
 class UniswapAgent:
+    """
+    Agent that makes trades in Uniswap and the external market in order to make arbitrage.
+
+    """
+
     def __init__(
         self,
         network,
@@ -54,10 +64,8 @@ class UniswapAgent:
         fee: int,
         swap_router_address: str,
         uniswap_pool_address: str,
-        token_a_address: str,  # external market (gbm) returns the price of token a in terms of token b
-        token_b_address: str,  # token b is the numeraire
-        token_a_price: int,
-        token_b_price: int,
+        token_a_address: str,  # token A is considered to be the risky asset
+        token_b_address: str,  # token B is considered to be less risky / stablecoin
         mu: float,
         sigma: float,
         dt: float,
@@ -85,10 +93,7 @@ class UniswapAgent:
         # external market model.
         # we initialise it at the same price as the Uniswap price
         # Uniswap returns price of token0 in terms of token1
-        slot0 = self.uniswap_pool_abi.slot0.call(
-            self.net, self.address, self.uniswap_pool_address, []
-        )[0]
-        sqrt_price_uniswap_x96 = slot0[0]
+        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap()
 
         if self.token_b == self.token1_address:
             token_a_price = (sqrt_price_uniswap_x96 / 2**96) ** 2
@@ -108,12 +113,30 @@ class UniswapAgent:
         # step of simulator
         self.step = 0
 
+    def get_sqrt_price_x96_uniswap(self) -> int:
+        """get sqrt price from uniswap pool.
+        Uniswap returns price of token0 in terms of token1
+        """
+
+        slot0 = self.uniswap_pool_abi.slot0.call(
+            self.net, self.address, self.uniswap_pool_address, []
+        )[0]
+        sqrt_price_uniswap_x96 = slot0[0]
+        return sqrt_price_uniswap_x96
+
     def get_swap_size_to_increase_uniswap_price(
         self,
         sqrt_price_external_market_x96: int,
         sqrt_price_uniswap_x96: int,
         liquidity: int,
     ):
+        """
+        Gets the swap parameters so that, after the swap, the price in Uniswap is the same as the price in the external market.
+        We know that in Uniswap v2 (or v3 if there is not a tick range change), we have
+        L = \frac{\Delta y}{\Delta \sqrt{P}}
+        where y is the numeraire (in our case the debt asset), and P is the price of the collateral in terms of the numeraire.
+        Ref: https://atiselsts.github.io/pdfs/uniswap-v3-liquidity-math.pdf
+        """
         change_sqrt_price_x96 = sqrt_price_external_market_x96 - sqrt_price_uniswap_x96
         change_token_1 = int(liquidity * change_sqrt_price_x96 / 2**96)
         if change_token_1 > 0:
@@ -143,6 +166,12 @@ class UniswapAgent:
         sqrt_price_uniswap_x96: int,
         liquidity: int,
     ):
+        """
+        Gets the swap parameters so that, after the swap, the price in Uniswap is the same as the price in the external market.
+        We know that in Uniswap v3 (or v2), we have
+        L = \frac{\Delta y}{\Delta \sqrt{P}}
+        where y is the numeraire (in our case the debt asset), and P is the price of the collateral in terms of the numeraire.
+        """
         change_sqrt_price_x96 = sqrt_price_uniswap_x96 - sqrt_price_external_market_x96
         change_token_1 = int(liquidity * change_sqrt_price_x96 / 2**96)
         if change_token_1 > 0:
@@ -168,10 +197,7 @@ class UniswapAgent:
 
     def update(self, rng: np.random.Generator, *args):
         # get sqrt price from uniswap pool. Uniswap returns price of token0 in terms of token1
-        slot0 = self.uniswap_pool_abi.slot0.call(
-            self.net, self.address, self.uniswap_pool_address, []
-        )[0]
-        sqrt_price_uniswap_x96 = slot0[0]
+        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap()
 
         # get liquidity from uniswap pool
         liquidity = self.uniswap_pool_abi.liquidity.call(
@@ -214,10 +240,7 @@ class UniswapAgent:
 
     def record(self):
         # get sqrt price from uniswap pool. Uniswap returns price of token0 in terms of token1
-        slot0 = self.uniswap_pool_abi.slot0.call(
-            self.net, self.address, self.uniswap_pool_address, []
-        )[0]
-        sqrt_price_uniswap_x96 = slot0[0]
+        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap()
 
         if self.token_b == self.token1_address:
             sqrt_price_external_market_x96 = (
