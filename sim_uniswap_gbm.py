@@ -59,7 +59,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    print("==============>", args.key)
+
     key = args.key
     block_number = args.block
     n_steps = args.n_steps

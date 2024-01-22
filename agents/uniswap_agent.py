@@ -250,7 +250,7 @@ class UniswapAgent:
         else:
             return []
 
-    def record(self):
+    def record(self, env):
         # get sqrt price from uniswap pool. Uniswap returns price of
         # token0 in terms of token1
         sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap()

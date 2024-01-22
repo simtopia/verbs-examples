@@ -24,7 +24,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "verbs@git+ssh://git@github.com/simtopia/verbs",
+  "verbs@git+ssh://git@github.com/simtopia/verbs.git",
   "matplotlib"
 ]
 
@@ -37,6 +37,8 @@ dependencies = [
 ]
 
 [tool.hatch.envs.dev.scripts]
-run = "python sim_uniswap_gbm.py"
 lint = "pre-commit install && pre-commit run --all-files"
-path = 'python -c "import sys;print(sys.executable)"'
+
+[tool.hatch.envs.examples.scripts]
+uniswap = "python sim_uniswap_gbm.py {args}"
+aave = "python sim_aave_uniswap.py {args}"
