@@ -3,14 +3,15 @@ In this example we consider the interaction between Aave and Uniswap
 via the following agents:
 
     1. A `Uniswap Agent` that trades between a Uniswap pool and
-    an external market, modelled by a Geometric Brownian Motion,
-    in order to make a profit.
+       an external market, modelled by a Geometric Brownian Motion,
+       in order to make a profit.
 
     2. Several `Borrow Agents` that borrow from an Aave v3 pool.
 
     3. A `Liquidation Agent` that liquidated those positions from the
-    `Borrow agents` that are in distress (that is, that their Health Factors are < 1)
-    as long as the liquidation is profitable for the liquidation agent.
+       `Borrow agents` that are in distress (that is, that their Health
+       Factors are < 1) as long as the liquidation is profitable for
+       the liquidation agent.
 
 We consider the following pools and tokens:
 
@@ -19,11 +20,11 @@ We consider the following pools and tokens:
     - `Borrow agents` borrow DAI and deposit WETH as collateral.
 
     - The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
-    external market is modelled by a GBM.
+      external market is modelled by a GBM.
 
     - The price of Uniswap follows the price in the external
-    market. The Uniswap agent allows that by making the right trade in each step
-    so that the new Uniswap price is the same as the price in the external market.
+      market. The Uniswap agent allows that by making the right trade in each step
+      so that the new Uniswap price is the same as the price in the external market.
 
     - The liquidator agent checks whether a liquidation is profitable before making
       the liquidation call:
