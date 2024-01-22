@@ -3,14 +3,15 @@ In this example we consider the interaction between Aave and Uniswap
 via the following agents:
 
     1. A `Uniswap Agent` that trades between a Uniswap pool and
-    an external market, modelled by a Geometric Brownian Motion,
-    in order to make a profit.
+       an external market, modelled by a Geometric Brownian Motion,
+       in order to make a profit.
 
     2. Several `Borrow Agents` that borrow from an Aave v3 pool.
 
     3. A `Liquidation Agent` that liquidated those positions from the
-    `Borrow agents` that are in distress (that is, that their Health Factors are < 1)
-    as long as the liquidation is profitable for the liquidation agent.
+       `Borrow agents` that are in distress (that is, that their Health
+       Factors are < 1) as long as the liquidation is profitable for
+       the liquidation agent.
 
 We consider the following pools and tokens:
 
@@ -19,16 +20,20 @@ We consider the following pools and tokens:
     - `Borrow agents` borrow DAI and deposit WETH as collateral.
 
     - The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
-    external market is modelled by a GBM.
+      external market is modelled by a GBM.
 
     - The price of Uniswap follows the price in the external
-    market. The Uniswap agent allows that by making the right trade in each step
-    so that the new Uniswap price is the same as the price in the external market.
+      market. The Uniswap agent allows that by making the right trade in each step
+      so that the new Uniswap price is the same as the price in the external market.
 
-    - The liquidator agent checks whether a liquidation is profitable before making the liquidation call:
-        - They check the amount of collateral that they would get by liquidation a fraction of a loan.
-        - They check the price of the trade in Uniswap necessary to close the short position in the debt asset.
-        - If they get a profit after closing their short position in the debt asset, then they make the transaction.
+    - The liquidator agent checks whether a liquidation is profitable before making
+      the liquidation call:
+        - They check the amount of collateral that they would get by liquidation a
+          fraction of a loan.
+        - They check the price of the trade in Uniswap necessary to close the short
+          position in the debt asset.
+        - If they get a profit after closing their short position in the debt asset,
+          then they make the transaction.
 
 
 Reference: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
@@ -53,7 +58,8 @@ WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
 DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 DAI_ADMIN = "0x9759A6Ac90977b93B58547b4A71c78317f391A28"
 UNISWAP_V3_FACTORY = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
-UNISWAP_WETH_DAI = "0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8"  # sanity check, obtained from the factory contract using web3.py
+# sanity check, obtained from the factory contract using web3.py
+UNISWAP_WETH_DAI = "0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8"
 SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 UNISWAP_QUOTER = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e"
 
@@ -71,7 +77,6 @@ def plot_results(
     n_steps = len(results)
     records_uniswap_agent = [x[0] for x in results]
     records_borrow_agents = [x[1 : (1 + n_borrow_agents)] for x in results]
-    records_liquidation_agent = [x[-1] for x in results]
 
     prices = np.array(records_uniswap_agent).reshape(n_steps, 2)
     health_factors = np.array(records_borrow_agents).reshape(n_steps, -1, 2)

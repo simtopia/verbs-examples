@@ -1,14 +1,15 @@
 """
 In this example we model an agent that trades between a Uniswap pool and
-and an external market, modelled by a Geometric Brownian Motion, in order to make
-a profit.
+and an external market, modelled by a Geometric Brownian Motion, in order
+to make a profit.
 
     - We consider the Uniswap v3 pool for WETH and DAI with fee 3000
     - The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
-    external market is modelled by a GBM.
-    - The goal of the simulation is for the price of Uniswap to follow the price in the external
-    market. The Uniswap agent takes of that in each step, by making the right trade
-    so that the new Uniswap price is the same as the price in the external market.
+      external market is modelled by a GBM.
+    - The goal of the simulation is for the price of Uniswap to follow the price
+      in the external
+      market. The Uniswap agent takes of that in each step, by making the right trade
+      so that the new Uniswap price is the same as the price in the external market.
 """
 
 
@@ -27,7 +28,8 @@ WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
 DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 DAI_ADMIN = "0x9759A6Ac90977b93B58547b4A71c78317f391A28"
 UNISWAP_V3_FACTORY = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
-UNISWAP_WETH_DAI = "0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8"  # sanity check, obtained from the factory contract using web3.py
+# sanity check, obtained from the factory contract using web3.py
+UNISWAP_WETH_DAI = "0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8"
 SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 
 
@@ -48,7 +50,7 @@ def plot_results(results: List[List[Tuple[int, int]]]):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--key", type=str, help="prive key from Alchemy")
+    parser.add_argument("--key", type=str, help="private key from Alchemy")
     parser.add_argument(
         "--block", type=int, default=18784000, help="Ethereum block number"
     )
@@ -57,6 +59,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
     key = args.key
     block_number = args.block
     n_steps = args.n_steps
@@ -78,7 +81,8 @@ if __name__ == "__main__":
     # create an admin agent
     admin_agent = AdminAgent(net, i=1)
 
-    # Example: Use uniswap_factory contractto get the address of WETH-DAI pool with fee 3000
+    # Example: Use uniswap_factory contract to get the address of WETH-DAI
+    # pool with fee 3000
     fee = 3000
     get_pool_args = uniswap_factory_abi.getPool.encode([WETH, DAI, fee])
     pool_address = uniswap_factory_abi.getPool.call(
@@ -142,7 +146,8 @@ if __name__ == "__main__":
     )
 
     # run simulation
-    # - The Uniswap Agent records the price of the external market, and the price of Uniswap.
+    # - The Uniswap Agent records the price of the external market,
+    #   and the price of Uniswap.
     # - Plot the prices and save the plot in results/uniswap_gbm_sim/prices.pdf
     runner = verbs.sim.Sim(101, net, [agent])
     results = runner.run(n_steps=n_steps)

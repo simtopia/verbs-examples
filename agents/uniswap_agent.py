@@ -51,8 +51,8 @@ class Gbm:
 
 class UniswapAgent:
     """
-    Agent that makes trades in Uniswap and the external market in order to make arbitrage.
-
+    Agent that makes trades in Uniswap and the external market in order
+    to make arbitrage.
     """
 
     def __init__(
@@ -64,8 +64,10 @@ class UniswapAgent:
         fee: int,
         swap_router_address: str,
         uniswap_pool_address: str,
-        token_a_address: str,  # token A is considered to be the risky asset
-        token_b_address: str,  # token B is considered to be less risky / stablecoin
+        # token A is considered to be the risky asset
+        token_a_address: str,
+        # token B is considered to be less risky / stablecoin
+        token_b_address: str,
         mu: float,
         sigma: float,
         dt: float,
@@ -131,10 +133,12 @@ class UniswapAgent:
         liquidity: int,
     ):
         """
-        Gets the swap parameters so that, after the swap, the price in Uniswap is the same as the price in the external market.
-        We know that in Uniswap v2 (or v3 if there is not a tick range change), we have
-        L = \frac{\Delta y}{\Delta \sqrt{P}}
-        where y is the numeraire (in our case the debt asset), and P is the price of the collateral in terms of the numeraire.
+        Gets the swap parameters so that, after the swap, the price in Uniswap
+        is the same as the price in the external market. We know that in
+        Uniswap v2 (or v3 if there is not a tick range change), we have
+        :math:`L = \\frac{\\Delta y}{\\Delta \\sqrt{P}}` where y is the
+        numeraire (in our case the debt asset), and P is the price of the
+        collateral in terms of the numeraire.
         Ref: https://atiselsts.github.io/pdfs/uniswap-v3-liquidity-math.pdf
         """
         change_sqrt_price_x96 = sqrt_price_external_market_x96 - sqrt_price_uniswap_x96
@@ -167,10 +171,12 @@ class UniswapAgent:
         liquidity: int,
     ):
         """
-        Gets the swap parameters so that, after the swap, the price in Uniswap is the same as the price in the external market.
-        We know that in Uniswap v3 (or v2), we have
-        L = \frac{\Delta y}{\Delta \sqrt{P}}
-        where y is the numeraire (in our case the debt asset), and P is the price of the collateral in terms of the numeraire.
+        Gets the swap parameters so that, after the swap, the price in
+        Uniswap is the same as the price in the external market. We
+        know that in Uniswap v3 (or v2), we have
+        :math:`L = \\frac{\\Delta y}{\\Delta \\sqrt{P}}` where y is
+        the numeraire (in our case the debt asset), and P is the price
+        of the collateral in terms of the numeraire.
         """
         change_sqrt_price_x96 = sqrt_price_uniswap_x96 - sqrt_price_external_market_x96
         change_token_1 = int(liquidity * change_sqrt_price_x96 / 2**96)
@@ -196,7 +202,8 @@ class UniswapAgent:
             return None
 
     def update(self, rng: np.random.Generator, *args):
-        # get sqrt price from uniswap pool. Uniswap returns price of token0 in terms of token1
+        # get sqrt price from uniswap pool. Uniswap returns price of
+        # token0 in terms of token1
         sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap()
 
         # get liquidity from uniswap pool
@@ -216,9 +223,14 @@ class UniswapAgent:
                 self.external_market.get_sqrt_price_token_b_x96()
             )
 
-        # find encoded swap params so that price of uniswap after swap matches the price of the external market
-        # sqrt_price_external_market > sqrt_price_uniswap_x96, the uniswap agent wants to buy collateral asset (and sell debt asset) to increase the price of Uniswap
-        # sqrt_price_external_market < sqrt_price_uniswap_x96, the uniswap agent wants to sell collateral asset (and buy debt asset) to decrease the price of Uniswap
+        # find encoded swap params so that price of uniswap after
+        # swap matches the price of the external market
+        # sqrt_price_external_market > sqrt_price_uniswap_x96,
+        # the uniswap agent wants to buy collateral asset
+        #  (and sell debt asset) to increase the price of Uniswap
+        # sqrt_price_external_market < sqrt_price_uniswap_x96,
+        # the uniswap agent wants to sell collateral asset
+        # (and buy debt asset) to decrease the price of Uniswap
         if sqrt_price_external_market_x96 > sqrt_price_uniswap_x96:
             swap_call = self.get_swap_size_to_increase_uniswap_price(
                 sqrt_price_external_market_x96=sqrt_price_external_market_x96,
@@ -238,8 +250,9 @@ class UniswapAgent:
         else:
             return []
 
-    def record(self):
-        # get sqrt price from uniswap pool. Uniswap returns price of token0 in terms of token1
+    def record(self, env):
+        # get sqrt price from uniswap pool. Uniswap returns price of
+        # token0 in terms of token1
         sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap()
 
         if self.token_b == self.token1_address:
