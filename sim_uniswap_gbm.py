@@ -4,12 +4,12 @@ and an external market, modelled by a Geometric Brownian Motion, in order
 to make a profit.
 
     - We consider the Uniswap v3 pool for WETH and DAI with fee 3000
-    - The price of the risky asset (WETH) in terms of the stablecoin (DAI)
-      in the external market is modelled by a GBM.
-    - The goal of the simulation for the price of Uniswap to follow the
-      price in the external market. The Uniswap agent takes of that in
-      each step, by making the right trade so that the new Uniswap price
-      is the same as the price in the external market.
+    - The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
+      external market is modelled by a GBM.
+    - The goal of the simulation is for the price of Uniswap to follow the price
+      in the external
+      market. The Uniswap agent takes of that in each step, by making the right trade
+      so that the new Uniswap price is the same as the price in the external market.
 """
 
 
