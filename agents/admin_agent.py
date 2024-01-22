@@ -5,15 +5,15 @@ from verbs.sim import BaseAgent
 class AdminAgent(BaseAgent):
     def __init__(
         self,
-        network,
+        env,
         i: int,
     ):
 
         address = verbs.utils.int_to_address(i)
-        self.deploy(network, address, 0)
+        self.deploy(env, address, 0)
 
-    def update(self, *args, **kwargs):
+    def update(self, *args):
         pass
 
-    def record(self, *args, **kwargs):
+    def record(self, *args):
         pass

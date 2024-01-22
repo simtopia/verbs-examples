@@ -7,7 +7,7 @@ import verbs
 class LiquidationAgent:
     def __init__(
         self,
-        network,
+        env,
         i: int,
         pool_implementation_abi,
         mintable_erc20_abi,
@@ -23,9 +23,8 @@ class LiquidationAgent:
         swap_router_address: str,
         uniswap_fee: int,
     ):
-        self.net = network
         self.address = verbs.utils.int_to_address(i)
-        self.net.create_account(self.address, int(1e25))
+        env.create_account(self.address, int(1e25))
 
         # Aave
         self.pool_implementation_abi = pool_implementation_abi
@@ -41,7 +40,7 @@ class LiquidationAgent:
         )  # debt token - stablecoin
 
         self.decimals_token_b = mintable_erc20_abi.decimals.call(
-            self.net, self.address, self.token_b_address, []
+            env, self.address, self.token_b_address, []
         )[0][0]
         self.mintable_erc20_abi = mintable_erc20_abi
 
@@ -63,13 +62,13 @@ class LiquidationAgent:
         # simulation steps
         self.step = 0
 
-    def accountability(self, liquidation_address, amount: int) -> bool:
+    def accountability(self, env, liquidation_address, amount: int) -> bool:
         """Makes the accountability of a liquidation and returns a boolean indicating
         whether the liquidation is profitable or not
         """
 
         liquidation_call_event = self.pool_implementation_abi.liquidationCall.call(
-            self.net,
+            env,
             self.address,
             self.pool_address,
             [
@@ -80,8 +79,6 @@ class LiquidationAgent:
                 True,
             ],
         )[1]
-
-        print(len(liquidation_call_event[-1][1]))
 
         if liquidation_call_event:
             decoded_liquidation_call_event = (
@@ -94,7 +91,7 @@ class LiquidationAgent:
             liquidated_collateral_amount = decoded_liquidation_call_event[1]
 
             quote = self.quoter_abi.quoteExactOutputSingle.call(
-                self.net,
+                env,
                 self.address,
                 self.quoter_address,
                 [
@@ -111,9 +108,9 @@ class LiquidationAgent:
             amount_collateral_from_swap = quote[0]
             return amount_collateral_from_swap > liquidated_collateral_amount
 
-    def update(self, rng: np.random.Generator, *args):
+    def update(self, rng: np.random.Generator, env):
         current_balance_collateral_asset = self.mintable_erc20_abi.balanceOf.call(
-            self.net,
+            env,
             self.address,
             self.token_a_address,
             [
@@ -121,7 +118,7 @@ class LiquidationAgent:
             ],
         )[0][0]
         current_balance_debt_asset = self.mintable_erc20_abi.balanceOf.call(
-            self.net,
+            env,
             self.address,
             self.token_b_address,
             [
@@ -133,7 +130,7 @@ class LiquidationAgent:
         users_data = []
         for borrower in self.liquidation_addresses:
             borrower_data = self.pool_implementation_abi.getUserAccountData.call(
-                self.net, self.address, self.pool_address, [borrower]
+                env, self.address, self.pool_address, [borrower]
             )[0]
             users_data.append((borrower, borrower_data))
 
@@ -142,9 +139,10 @@ class LiquidationAgent:
 
         # filter thoses positions for which liquidating is profitable
         # Note: https://docs.aave.com/developers/core-contracts/pool#liquidationcall
-        # debtToCover parameter can be set to uint(-1) and the protocol will proceed with the highest possible liquidation allowed by the close factor.
+        # debtToCover parameter can be set to uint(-1) and the protocol will proceed
+        # with the highest possible liquidation allowed by the close factor.
         liquidatable_positions = filter(
-            lambda x: self.accountability(x[0], 10**32), risky_positions
+            lambda x: self.accountability(env, x[0], 10**32), risky_positions
         )
 
         # create transactions
@@ -194,11 +192,10 @@ class LiquidationAgent:
 
         return tx
 
-    def record(
-        self,
-    ):
+    def record(self, env):
+
         current_balance_collateral_asset = self.mintable_erc20_abi.balanceOf.call(
-            self.net,
+            env,
             self.address,
             self.token_a_address,
             [
@@ -206,7 +203,7 @@ class LiquidationAgent:
             ],
         )[0][0]
         current_balance_debt_asset = self.mintable_erc20_abi.balanceOf.call(
-            self.net,
+            env,
             self.address,
             self.token_b_address,
             [

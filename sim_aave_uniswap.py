@@ -4,7 +4,6 @@ In this example
 import argparse
 import json
 
-import numpy as np
 import verbs
 
 from agents.admin_agent import AdminAgent
@@ -16,7 +15,8 @@ WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
 DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 DAI_ADMIN = "0x9759A6Ac90977b93B58547b4A71c78317f391A28"
 UNISWAP_V3_FACTORY = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
-UNISWAP_WETH_DAI = "0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8"  # sanity check, obtained from the factory contract using web3.py
+# sanity check, obtained from the factory contract using web3.py
+UNISWAP_WETH_DAI = "0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8"
 SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 UNISWAP_QUOTER = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e"
 

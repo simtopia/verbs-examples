@@ -5,12 +5,13 @@ build-backend = "maturin"
 [project]
 name = "verbs-examples"
 version = "0.1.0"
-description = ''
+description = "VERBS simulation examples"
 readme = "README.md"
 requires-python = ">=3.8"
 keywords = []
 authors = [
   { name = "Jordan", email = "jordan@simtopia.ai" },
+  { name = "Marc", email = "marc@simtopia.ai"}
 ]
 classifiers = [
   "Programming Language :: Python",
@@ -23,13 +24,19 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "verbs@git+ssh://git@github.com/simtopia/verbs.git",
+  "verbs@git+ssh://git@github.com/simtopia/verbs",
   "matplotlib"
 ]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
+[tool.hatch.envs.dev]
+dependencies = [
+  "pre-commit >= 3.3.3",
+]
+
 [tool.hatch.envs.dev.scripts]
-run = "python uniswap_gbm.py"
+run = "python sim_uniswap_gbm.py"
 lint = "pre-commit install && pre-commit run --all-files"
+path = 'python -c "import sys;print(sys.executable)"'
