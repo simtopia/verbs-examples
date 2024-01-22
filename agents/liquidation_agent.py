@@ -81,8 +81,6 @@ class LiquidationAgent:
             ],
         )[1]
 
-        print(len(liquidation_call_event[-1][1]))
-
         if liquidation_call_event:
             decoded_liquidation_call_event = (
                 self.pool_implementation_abi.LiquidationCall.decode(
@@ -109,7 +107,7 @@ class LiquidationAgent:
             )[0]
 
             amount_collateral_from_swap = quote[0]
-            return amount_collateral_from_swap > liquidated_collateral_amount
+            return amount_collateral_from_swap < liquidated_collateral_amount
 
     def update(self, rng: np.random.Generator, *args):
         current_balance_collateral_asset = self.mintable_erc20_abi.balanceOf.call(
@@ -168,14 +166,14 @@ class LiquidationAgent:
             # check if liquidator has open short position in the debt asset
             if self.balance_debt_asset[-1] > current_balance_debt_asset:
                 debt = self.balance_debt_asset[-1] - current_balance_debt_asset
-                swap_tx = self.swap_router_abi.exactOutputSinge.transaction(
+                swap_tx = self.swap_router_abi.exactOutputSingle.transaction(
                     self.address,
-                    self.uniswap_pool_address,
+                    self.swap_router_address,
                     [
                         (
-                            self.token_a_adress,
+                            self.token_a_address,
                             self.token_b_address,
-                            self.fee,
+                            self.uniswap_fee,
                             self.address,
                             10**32,
                             debt,

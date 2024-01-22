@@ -45,7 +45,11 @@ class BorrowAgent:
         ), "activation_rate has to be between 0 and 1"
         self.activation_rate = activation_rate
 
+        self.step = 0
+
     def update(self, rng: np.random.Generator, *args, **kwargs):
+        self.step += 1
+
         balance_token_a = self.mintable_erc20_abi.balanceOf.call(
             self.net,
             self.address,
@@ -99,5 +103,6 @@ class BorrowAgent:
         user_data = self.pool_implementation_abi.getUserAccountData.call(
             self.net, self.address, self.pool_address, [self.address]
         )[0]
-        health_factor = user_data[5]
-        return health_factor
+        health_factor = user_data[5] / 10**18
+        health_factor = min(health_factor, 100)
+        return (self.step, health_factor)

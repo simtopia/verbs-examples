@@ -1,9 +1,46 @@
 """
-In this example
+In this example we consider the interaction between Aave and Uniswap
+via the following agents:
+
+    1. A `Uniswap Agent` that trades between a Uniswap pool and
+    an external market, modelled by a Geometric Brownian Motion,
+    in order to make a profit.
+
+    2. Several `Borrow Agents` that borrow from an Aave v3 pool.
+
+    3. A `Liquidation Agent` that liquidated those positions from the
+    `Borrow agents` that are in distress (that is, that their Health Factors are < 1)
+    as long as the liquidation is profitable for the liquidation agent.
+
+We consider the following pools and tokens:
+
+    - Uniswap v3 pool for WETH and DAI with fee 3000.
+
+    - `Borrow agents` borrow DAI and deposit WETH as collateral.
+
+    - The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
+    external market is modelled by a GBM.
+
+    - The price of Uniswap follows the price in the external
+    market. The Uniswap agent allows that by making the right trade in each step
+    so that the new Uniswap price is the same as the price in the external market.
+
+    - The liquidator agent checks whether a liquidation is profitable before making the liquidation call:
+        - They check the amount of collateral that they would get by liquidation a fraction of a loan.
+        - They check the price of the trade in Uniswap necessary to close the short position in the debt asset.
+        - If they get a profit after closing their short position in the debt asset, then they make the transaction.
+
+
+Reference: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
 """
+
+
 import argparse
 import json
+import os
+from typing import List, Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
 import verbs
 
@@ -26,6 +63,39 @@ AAVE_ORACLE = "0x54586bE62E3c3580375aE3723C145253060Ca0C2"
 AAVE_ADDRESS_PROVIDER = "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e"
 AAVE_ACL_MANAGER = "0xc2aaCf6553D20d1e9d78E365AAba8032af9c85b0"
 
+
+def plot_results(
+    results: List[List[Tuple]],
+    n_borrow_agents: int,
+):
+    n_steps = len(results)
+    records_uniswap_agent = [x[0] for x in results]
+    records_borrow_agents = [x[1 : (1 + n_borrow_agents)] for x in results]
+    records_liquidation_agent = [x[-1] for x in results]
+
+    prices = np.array(records_uniswap_agent).reshape(n_steps, 2)
+    health_factors = np.array(records_borrow_agents).reshape(n_steps, -1, 2)
+
+    plot_dir = "results/sim_aave_uniswap"
+    if not os.path.exists(plot_dir):
+        os.makedirs(plot_dir)
+
+    fig, ax = plt.subplots(figsize=(6, 3))
+    ax.plot(prices[:, 0], label="Uniswap price")
+    ax.plot(prices[:, 1], label="External market price")
+    ax.legend()
+    fig.savefig(os.path.join(plot_dir, "prices.pdf"))
+
+    fig, ax = plt.subplots(figsize=(6, 3))
+    for i in range(n_borrow_agents):
+        hf = health_factors[:, i, :]
+        hf = hf[hf[:, 1] < 100, :]
+        ax.plot(hf[:, 0], hf[:, 1])
+        ax.set_xlabel("simulation step")
+        ax.set_ylabel("Health Factor")
+    fig.savefig(os.path.join(plot_dir, "health_factors.pdf"))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--key", type=str, help="prive key from Alchemy")
@@ -33,13 +103,19 @@ if __name__ == "__main__":
         "--block", type=int, default=18784000, help="Ethereum block number"
     )
     parser.add_argument(
-        "--n_borrow_agents", type=int, default=10, help="Number of borrowing agents"
+        "--n_borrow_agents", type=int, default=2, help="Number of borrowing agents"
+    )
+    parser.add_argument("--sigma", type=float, default=0.3, help="price volatility")
+    parser.add_argument(
+        "--n_steps", type=int, default=100, help="Number of steps of the simulation"
     )
 
     args = parser.parse_args()
     key = args.key
     block_number = args.block
     n_borrow_agents = args.n_borrow_agents
+    sigma = args.sigma
+    n_steps = args.n_steps
 
     # ABIs
     swap_router_abi = verbs.abi.load_abi("abi/SwapRouter.abi")
@@ -78,24 +154,22 @@ if __name__ == "__main__":
     )[0][0]
 
     # Sanity check
-    # assert pool_address == UNISWAP_WETH_DAI.lower()
+    assert pool_address == UNISWAP_WETH_DAI.lower()
 
-    ###########################
+    # -------------------------
     # Initialize Uniswap agent
-    ###########################
+    # -------------------------
     uniswap_agent = UniswapAgent(
         network=net,
         dt=0.01,
         fee=fee,
         i=10,
         mu=0.0,
-        sigma=0.3,
+        sigma=sigma,
         swap_router_abi=swap_router_abi,
         swap_router_address=SWAP_ROUTER,
         token_a_address=WETH,
-        token_a_price=2000.0,
         token_b_address=DAI,
-        token_b_price=1.0,
         uniswap_pool_abi=uniswap_pool_abi,
         uniswap_pool_address=pool_address,
     )
@@ -215,9 +289,9 @@ if __name__ == "__main__":
         args=[verbs.utils.hex_to_bytes(AAVE_POOL), int(1e30)],
     )
 
-    ################################################
+    # ----------------------------------------------
     # Replace Chainlink with our price aggregation
-    ################################################
+    # ----------------------------------------------
 
     # We load the Uniswap Aggregator contract that gets the price from the Uniswap pool
     with open("abi/UniswapAggregator.json", "r") as f:
@@ -276,4 +350,5 @@ if __name__ == "__main__":
     # run simulation
     agents = [uniswap_agent] + borrow_agents + [liquidation_agent]
     runner = verbs.sim.Sim(101, net, agents)
-    results = runner.run(n_steps=100)
+    results = runner.run(n_steps=n_steps)
+    plot_results(results, n_borrow_agents)
