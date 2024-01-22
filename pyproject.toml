@@ -23,7 +23,8 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "verbs@git+ssh://git@github.com/simtopia/rusty_venture.git"
+  "verbs@git+ssh://git@github.com/simtopia/verbs.git",
+  "matplotlib"
 ]
 
 [tool.hatch.metadata]
