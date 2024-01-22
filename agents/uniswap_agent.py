@@ -15,12 +15,10 @@ class Gbm:
         self.sigma = sigma
         self.token_a_price = token_a_price
         self.token_b_price = token_b_price
+        self.token_a_price_with_impact = token_a_price
         self.dt = dt
 
-    def update(
-        self,
-        rng: np.random.Generator,
-    ):
+    def update(self, rng: np.random.Generator, price_impact: float):
         """
         Update Gbm:
         - P^a_{t+dt} = P^a_t * exp((mu-0.5*sigma^2)dt + sigma * (W_{t+dt} - W_{t}))
@@ -32,20 +30,22 @@ class Gbm:
             (self.mu - 0.5 * self.sigma**2) * self.dt
             + self.sigma * np.sqrt(self.dt) * z
         )
+        new_price_a_w_impact = new_price_a + price_impact
 
         # update price values
         self.token_a_price = int(new_price_a)
+        self.token_a_price_with_impact = new_price_a_w_impact
 
     def get_sqrt_price_token_a_x96(self):
-        price = self.token_a_price / self.token_b_price
+        price = self.token_a_price_with_impact / self.token_b_price
         return np.sqrt(price) * 2**96
 
     def get_sqrt_price_token_b_x96(self):
-        price = self.token_b_price / self.token_a_price
+        price = self.token_b_price / self.token_a_price_with_impact
         return np.sqrt(price) * 2**96
 
     def get_price_token_a(self):
-        price = self.token_a_price / self.token_b_price
+        price = self.token_a_price_with_impact / self.token_b_price
         return price
 
 
@@ -111,6 +111,10 @@ class UniswapAgent:
             token_b_price=token_b_price,
             dt=dt,
         )
+        # Variables to calculate price impact of Uniswap on the external exchange
+        self.dt = dt
+        self.beta = 2.0
+        self.transient_impact = 0
 
         # step of simulator
         self.step = 0
@@ -206,13 +210,22 @@ class UniswapAgent:
         # token0 in terms of token1
         sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap()
 
+        # We assume that trades on Uniswap have a price impact on the external
+        # exchange. This is accumulated with an exponential decay
+        if self.step > 0:
+            current_price_impact = self.get_price_impact_in_external_market()
+            self.transient_impact = (
+                np.exp(-self.beta * self.dt) * self.transient_impact
+                + current_price_impact
+            )
+
         # get liquidity from uniswap pool
         liquidity = self.uniswap_pool_abi.liquidity.call(
             self.net, self.address, self.uniswap_pool_address, []
         )[0][0]
 
         # external market update
-        self.external_market.update(rng)
+        self.external_market.update(rng, self.transient_impact)
 
         if self.token_b == self.token1_address:
             sqrt_price_external_market_x96 = (
@@ -268,3 +281,16 @@ class UniswapAgent:
         sqrt_price_external_market = sqrt_price_external_market_x96 / (2**96)
 
         return (sqrt_price_uniswap**2, sqrt_price_external_market**2)
+
+    def get_price_impact_in_external_market(self) -> float:
+        """
+        We assume that a trade in Uniswap has transient impact
+        on the external exchange
+        """
+        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap()
+        if self.token_b == self.token1_address:
+            token_a_price_uniswap = (sqrt_price_uniswap_x96 / 2**96) ** 2
+        else:
+            token_a_price_uniswap = (2**96 / sqrt_price_uniswap_x96) ** 2
+        token_a_price_external = self.external_market.get_price_token_a()
+        return token_a_price_uniswap - token_a_price_external
