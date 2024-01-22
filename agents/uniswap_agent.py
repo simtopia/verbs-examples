@@ -33,7 +33,7 @@ class Gbm:
         new_price_a_w_impact = new_price_a + price_impact
 
         # update price values
-        self.token_a_price = int(new_price_a)
+        self.token_a_price = new_price_a
         self.token_a_price_with_impact = new_price_a_w_impact
 
     def get_sqrt_price_token_a_x96(self):
