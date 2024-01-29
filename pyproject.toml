@@ -9,7 +9,7 @@ packages = []
 name = "verbs-examples"
 version = "0.1.0"
 description = "VERBS simulation examples"
-license = "MIT"
+license = {file = "LICENSE"}
 readme = "README.md"
 requires-python = ">=3.8"
 keywords = ["ethereum", "agent-based modelling", "simulation", "defi"]
