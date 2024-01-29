@@ -52,7 +52,7 @@ class BorrowAgent:
                 supply_tx = self.pool_implementation_abi.supply.transaction(
                     self.address,
                     self.pool_address,
-                    [self.token_a_address, 10**20, self.address, 0],
+                    [self.token_a_address, 10**18, self.address, 0],
                 )
                 self.has_supplied = True
                 return [supply_tx]

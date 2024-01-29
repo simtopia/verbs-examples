@@ -24,7 +24,7 @@ class LiquidationAgent:
         uniswap_fee: int,
     ):
         self.address = verbs.utils.int_to_address(i)
-        env.create_account(self.address, int(1e25))
+        env.create_account(self.address, int(1e35))
 
         # Aave
         self.pool_implementation_abi = pool_implementation_abi
@@ -107,6 +107,8 @@ class LiquidationAgent:
 
             amount_collateral_from_swap = quote[0]
             return amount_collateral_from_swap < liquidated_collateral_amount
+        else:
+            return False
 
     def update(self, rng: np.random.Generator, env):
         current_balance_collateral_asset = self.mintable_erc20_abi.balanceOf.call(

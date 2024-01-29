@@ -57,7 +57,7 @@ class UniswapAgent:
 
     def __init__(
         self,
-        network,
+        env,
         i: int,
         swap_router_abi,
         uniswap_pool_abi,
@@ -72,7 +72,7 @@ class UniswapAgent:
         sigma: float,
         dt: float,
     ):
-        self.net = network
+        self.net = env
         self.address = verbs.utils.int_to_address(i)
         self.net.create_account(self.address, int(1e25))
         self.swap_router_abi = swap_router_abi
@@ -225,7 +225,7 @@ class UniswapAgent:
         )[0][0]
 
         # external market update
-        self.external_market.update(rng, self.transient_impact)
+        self.external_market.update(rng, 0.1 * self.transient_impact)
 
         if self.token_b == self.token1_address:
             sqrt_price_external_market_x96 = (

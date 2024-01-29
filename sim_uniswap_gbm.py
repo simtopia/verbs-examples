@@ -99,7 +99,7 @@ if __name__ == "__main__":
     # Initialize Uniswap agent
     # ------------------------
     agent = UniswapAgent(
-        network=net,
+        env=net,
         dt=0.01,
         fee=fee,
         i=10,  # idx of agent

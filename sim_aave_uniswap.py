@@ -165,7 +165,7 @@ if __name__ == "__main__":
     # Initialize Uniswap agent
     # -------------------------
     uniswap_agent = UniswapAgent(
-        network=net,
+        env=net,
         dt=0.01,
         fee=fee,
         i=10,
@@ -214,7 +214,7 @@ if __name__ == "__main__":
     ##############################
     borrow_agents = [
         BorrowAgent(
-            network=net,
+            env=net,
             i=100 + i,
             pool_implementation_abi=aave_pool_abi,
             oracle_abi=aave_oracle_abi,
@@ -249,7 +249,7 @@ if __name__ == "__main__":
     # Initialise liquidation agent
     ################################
     liquidation_agent = LiquidationAgent(
-        network=net,
+        env=net,
         i=1000,
         pool_implementation_abi=aave_pool_abi,
         mintable_erc20_abi=weth_erc20_abi,
@@ -270,28 +270,28 @@ if __name__ == "__main__":
         args=[],
         env=net,
         sender=liquidation_agent.address,
-        value=int(1e24),
+        value=int(1e30),
     )
 
     weth_erc20_abi.approve.execute(
         sender=liquidation_agent.address,
         address=verbs.utils.hex_to_bytes(WETH),
         env=net,
-        args=[verbs.utils.hex_to_bytes(SWAP_ROUTER), int(1e24)],
+        args=[verbs.utils.hex_to_bytes(SWAP_ROUTER), int(1e30)],
     )
 
     dai_abi.mint.execute(
         address=verbs.utils.hex_to_bytes(DAI),
         sender=verbs.utils.hex_to_bytes(DAI_ADMIN),
         env=net,
-        args=[liquidation_agent.address, int(1e30)],
+        args=[liquidation_agent.address, int(1e35)],
     )
 
     dai_abi.approve.execute(
         sender=liquidation_agent.address,
         address=verbs.utils.hex_to_bytes(DAI),
         env=net,
-        args=[verbs.utils.hex_to_bytes(AAVE_POOL), int(1e30)],
+        args=[verbs.utils.hex_to_bytes(AAVE_POOL), int(1e35)],
     )
 
     # ----------------------------------------------
