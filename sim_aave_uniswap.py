@@ -96,8 +96,8 @@ def plot_results(
         hf = health_factors[:, i, :]
         hf = hf[hf[:, 1] < 100, :]
         ax.plot(hf[:, 0], hf[:, 1])
-        ax.set_xlabel("simulation step")
-        ax.set_ylabel("Health Factor")
+    ax.set_xlabel("simulation step")
+    ax.set_ylabel("Health Factor")
     fig.savefig(os.path.join(plot_dir, "health_factors.pdf"))
 
 
@@ -354,6 +354,6 @@ if __name__ == "__main__":
 
     # run simulation
     agents = [uniswap_agent] + borrow_agents + [liquidation_agent]
-    runner = verbs.sim.Sim(101, net, agents)
+    runner = verbs.sim.Sim(10, net, agents)
     results = runner.run(n_steps=n_steps)
     plot_results(results, n_borrow_agents)
