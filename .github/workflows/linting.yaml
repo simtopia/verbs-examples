@@ -1,0 +1,17 @@
+name: code-formatting
+run-name: ${{ github.actor }} code format checks
+on: [pull_request]
+jobs:
+  python_linting:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.ACTIONS }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - run: pip install hatch
+      - run: hatch run dev:lint

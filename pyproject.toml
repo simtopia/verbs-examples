@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []
+
+[project]
+name = "verbs-examples"
+version = "0.1.0"
+description = "VERBS simulation examples"
+license = {file = "LICENSE"}
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["ethereum", "agent-based modelling", "simulation", "defi"]
+authors = [
+  { name = "Jordan", email = "jordan@simtopia.ai" },
+  { name = "Marc", email = "marc@simtopia.ai"}
+]
+maintainers = [
+  { name = "Jordan", email = "jordan@simtopia.ai" },
+  { name = "Marc", email = "marc@simtopia.ai"}
+]
+classifiers = [
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Rust",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+  "verbs",
+  "matplotlib"
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.envs.dev]
+dependencies = [
+  "pre-commit >= 3.3.3",
+]
+
+[tool.hatch.envs.dev.scripts]
+lint = "pre-commit install && pre-commit run --all-files"
+
+[tool.hatch.envs.examples.scripts]
+uniswap = "python sim_uniswap_gbm.py {args}"
+aave = "python sim_aave_uniswap.py {args}"
