@@ -102,8 +102,9 @@ def plot_results(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--key", type=str, help="prive key from Alchemy")
+
+    parser = argparse.ArgumentParser(prog="AAVE agent-based simulation")
+    parser.add_argument("key", type=str, help="Alchemy API key")
     parser.add_argument(
         "--block", type=int, default=18784000, help="Ethereum block number"
     )
@@ -138,21 +139,21 @@ if __name__ == "__main__":
     )
     aave_acl_manager_abi = verbs.abi.load_abi("abi/ACLManager.abi")
 
-    # Fork mainnet
-    net = verbs.envs.ForkEnv(
+    # Fork environment from mainnet
+    env = verbs.envs.ForkEnv(
         "https://eth-mainnet.g.alchemy.com/v2/{}".format(key),
         0,
         block_number,
     )
 
-    # admin agent
-    admin_agent = AdminAgent(net, i=1)
+    # Admin agent
+    admin_agent = AdminAgent(env, i=1)
 
-    # # Use uniswap_factory contract to get the address of WETH-DAI pool
+    # Use uniswap_factory contract to get the address of WETH-DAI pool
     fee = 3000
     get_pool_args = uniswap_factory_abi.getPool.encode([WETH, DAI, fee])
     pool_address = uniswap_factory_abi.getPool.call(
-        net,
+        env,
         admin_agent.address,
         verbs.utils.hex_to_bytes(UNISWAP_V3_FACTORY),
         [WETH, DAI, fee],
@@ -161,11 +162,22 @@ if __name__ == "__main__":
     # Sanity check
     assert pool_address == UNISWAP_WETH_DAI.lower()
 
+    # Convert addresses to bytes
+    weth_address = verbs.utils.hex_to_bytes(WETH)
+    dai_address = verbs.utils.hex_to_bytes(DAI)
+    dai_admin_address = verbs.utils.hex_to_bytes(DAI_ADMIN)
+    swap_router_address = verbs.utils.hex_to_bytes(SWAP_ROUTER)
+    aave_pool_address = verbs.utils.hex_to_bytes(AAVE_POOL)
+    uniswap_weth_dai = verbs.utils.hex_to_bytes(UNISWAP_WETH_DAI)
+    aave_pool_address = verbs.utils.hex_to_bytes(AAVE_POOL)
+    aave_address_provider = verbs.utils.hex_to_bytes(AAVE_ADDRESS_PROVIDER)
+    aave_acl_manager_address = verbs.utils.hex_to_bytes(AAVE_ACL_MANAGER)
+
     # -------------------------
     # Initialize Uniswap agent
     # -------------------------
     uniswap_agent = UniswapAgent(
-        env=net,
+        env=env,
         dt=0.01,
         fee=fee,
         i=10,
@@ -179,34 +191,34 @@ if __name__ == "__main__":
         uniswap_pool_address=pool_address,
     )
 
-    # mint and approve tokens
+    # Mint and approve tokens
     weth_erc20_abi.deposit.execute(
-        address=verbs.utils.hex_to_bytes(WETH),
+        address=weth_address,
         args=[],
-        env=net,
+        env=env,
         sender=uniswap_agent.address,
         value=int(1e24),
     )
 
     weth_erc20_abi.approve.execute(
         sender=uniswap_agent.address,
-        address=verbs.utils.hex_to_bytes(WETH),
-        env=net,
-        args=[verbs.utils.hex_to_bytes(SWAP_ROUTER), int(1e24)],
+        address=weth_address,
+        env=env,
+        args=[swap_router_address, int(1e24)],
     )
 
     dai_abi.mint.execute(
-        address=verbs.utils.hex_to_bytes(DAI),
-        sender=verbs.utils.hex_to_bytes(DAI_ADMIN),
-        env=net,
+        address=dai_address,
+        sender=dai_admin_address,
+        env=env,
         args=[uniswap_agent.address, int(1e30)],
     )
 
     dai_abi.approve.execute(
         sender=uniswap_agent.address,
-        address=verbs.utils.hex_to_bytes(DAI),
-        env=net,
-        args=[verbs.utils.hex_to_bytes(SWAP_ROUTER), int(1e30)],
+        address=dai_address,
+        env=env,
+        args=[swap_router_address, int(1e30)],
     )
 
     ##############################
@@ -214,7 +226,7 @@ if __name__ == "__main__":
     ##############################
     borrow_agents = [
         BorrowAgent(
-            env=net,
+            env=env,
             i=100 + i,
             pool_implementation_abi=aave_pool_abi,
             oracle_abi=aave_oracle_abi,
@@ -231,25 +243,25 @@ if __name__ == "__main__":
     # Mint WETH and approve WETH
     for borrow_agent in borrow_agents:
         weth_erc20_abi.deposit.execute(
-            address=verbs.utils.hex_to_bytes(WETH),
+            address=weth_address,
             args=[],
-            env=net,
+            env=env,
             sender=borrow_agent.address,
             value=int(1e24),
         )
 
         weth_erc20_abi.approve.execute(
             sender=borrow_agent.address,
-            address=verbs.utils.hex_to_bytes(WETH),
-            env=net,
-            args=[verbs.utils.hex_to_bytes(AAVE_POOL), int(1e24)],
+            address=weth_address,
+            env=env,
+            args=[aave_pool_address, int(1e24)],
         )
 
     ################################
     # Initialise liquidation agent
     ################################
     liquidation_agent = LiquidationAgent(
-        env=net,
+        env=env,
         i=1000,
         pool_implementation_abi=aave_pool_abi,
         mintable_erc20_abi=weth_erc20_abi,
@@ -266,32 +278,32 @@ if __name__ == "__main__":
         uniswap_fee=fee,
     )
     weth_erc20_abi.deposit.execute(
-        address=verbs.utils.hex_to_bytes(WETH),
+        address=weth_address,
         args=[],
-        env=net,
+        env=env,
         sender=liquidation_agent.address,
         value=int(1e30),
     )
 
     weth_erc20_abi.approve.execute(
         sender=liquidation_agent.address,
-        address=verbs.utils.hex_to_bytes(WETH),
-        env=net,
-        args=[verbs.utils.hex_to_bytes(SWAP_ROUTER), int(1e30)],
+        address=weth_address,
+        env=env,
+        args=[swap_router_address, int(1e30)],
     )
 
     dai_abi.mint.execute(
-        address=verbs.utils.hex_to_bytes(DAI),
-        sender=verbs.utils.hex_to_bytes(DAI_ADMIN),
-        env=net,
+        address=dai_address,
+        sender=dai_admin_address,
+        env=env,
         args=[liquidation_agent.address, int(1e35)],
     )
 
     dai_abi.approve.execute(
         sender=liquidation_agent.address,
-        address=verbs.utils.hex_to_bytes(DAI),
-        env=net,
-        args=[verbs.utils.hex_to_bytes(AAVE_POOL), int(1e35)],
+        address=dai_address,
+        env=env,
+        args=[aave_pool_address, int(1e35)],
     )
 
     # ----------------------------------------------
@@ -303,13 +315,13 @@ if __name__ == "__main__":
         uniswap_aggregator_contract = json.load(f)
 
     uniswap_aggregator_address = uniswap_aggregator_abi.constructor.deploy(
-        net,
+        env,
         admin_agent.address,
         uniswap_aggregator_contract["bytecode"],
         [
-            verbs.utils.hex_to_bytes(UNISWAP_WETH_DAI),
-            verbs.utils.hex_to_bytes(WETH),
-            verbs.utils.hex_to_bytes(DAI),
+            uniswap_weth_dai,
+            weth_address,
+            dai_address,
         ],
     )
 
@@ -317,43 +329,46 @@ if __name__ == "__main__":
     # token constant (that will be our numeraire)
     with open("abi/MockAggregator.json", "r") as f:
         mock_aggregator_contract = json.load(f)
+
     mock_aggregator_address = mock_aggregator_abi.constructor.deploy(
-        net, admin_agent.address, mock_aggregator_contract["bytecode"], [10**8]
+        env, admin_agent.address, mock_aggregator_contract["bytecode"], [10**8]
     )
 
     aave_acl_admin = aave_pool_addresses_provider_abi.getACLAdmin.call(
-        net, admin_agent.address, verbs.utils.hex_to_bytes(AAVE_ADDRESS_PROVIDER), []
+        env, admin_agent.address, aave_address_provider, []
     )[0][0]
+    aave_acl_admin_address = verbs.utils.hex_to_bytes(aave_acl_admin)
 
     pool_admin_role = aave_acl_manager_abi.POOL_ADMIN_ROLE.call(
-        net,
-        verbs.utils.hex_to_bytes(aave_acl_admin),
-        verbs.utils.hex_to_bytes(AAVE_ACL_MANAGER),
+        env,
+        aave_acl_admin_address,
+        aave_acl_manager_address,
         [],
     )[0][0]
 
     aave_acl_manager_abi.grantRole.execute(
-        net,
-        verbs.utils.hex_to_bytes(aave_acl_admin),
-        verbs.utils.hex_to_bytes(AAVE_ACL_MANAGER),
+        env,
+        aave_acl_admin_address,
+        aave_acl_manager_address,
         [
             pool_admin_role,
-            verbs.utils.hex_to_bytes(aave_acl_admin),
+            aave_acl_admin_address,
         ],
     )
 
     aave_oracle_abi.setAssetSources.execute(
-        net,
-        verbs.utils.hex_to_bytes(aave_acl_admin),
+        env,
+        aave_acl_admin_address,
         verbs.utils.hex_to_bytes(AAVE_ORACLE),
         [
-            [verbs.utils.hex_to_bytes(WETH), verbs.utils.hex_to_bytes(DAI)],
+            [weth_address, dai_address],
             [uniswap_aggregator_address, mock_aggregator_address],
         ],
     )
 
-    # run simulation
+    # Run simulation
     agents = [uniswap_agent] + borrow_agents + [liquidation_agent]
-    runner = verbs.sim.Sim(10, net, agents)
+    runner = verbs.sim.Sim(10, env, agents)
     results = runner.run(n_steps=n_steps)
+
     plot_results(results, n_borrow_agents)
