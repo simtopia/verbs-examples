@@ -49,7 +49,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import verbs
 
-from agents.admin_agent import AdminAgent
+from agents import ZERO_ADDRESS
 from agents.borrow_agent import BorrowAgent
 from agents.liquidation_agent import LiquidationAgent
 from agents.uniswap_agent import UniswapAgent
@@ -82,6 +82,7 @@ def plot_results(
     health_factors = np.array(records_borrow_agents).reshape(n_steps, -1, 2)
 
     plot_dir = "results/sim_aave_uniswap"
+
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
 
@@ -92,10 +93,12 @@ def plot_results(
     fig.savefig(os.path.join(plot_dir, "prices.pdf"))
 
     fig, ax = plt.subplots(figsize=(6, 3))
+
     for i in range(n_borrow_agents):
         hf = health_factors[:, i, :]
         hf = hf[hf[:, 1] < 100, :]
         ax.plot(hf[:, 0], hf[:, 1])
+
     ax.set_xlabel("simulation step")
     ax.set_ylabel("Health Factor")
     fig.savefig(os.path.join(plot_dir, "health_factors.pdf"))
@@ -146,15 +149,12 @@ if __name__ == "__main__":
         block_number,
     )
 
-    # Admin agent
-    admin_agent = AdminAgent(env, i=1)
-
     # Use uniswap_factory contract to get the address of WETH-DAI pool
     fee = 3000
     get_pool_args = uniswap_factory_abi.getPool.encode([WETH, DAI, fee])
     pool_address = uniswap_factory_abi.getPool.call(
         env,
-        admin_agent.address,
+        ZERO_ADDRESS,
         verbs.utils.hex_to_bytes(UNISWAP_V3_FACTORY),
         [WETH, DAI, fee],
     )[0][0]
@@ -316,7 +316,7 @@ if __name__ == "__main__":
 
     uniswap_aggregator_address = uniswap_aggregator_abi.constructor.deploy(
         env,
-        admin_agent.address,
+        ZERO_ADDRESS,
         uniswap_aggregator_contract["bytecode"],
         [
             uniswap_weth_dai,
@@ -331,11 +331,11 @@ if __name__ == "__main__":
         mock_aggregator_contract = json.load(f)
 
     mock_aggregator_address = mock_aggregator_abi.constructor.deploy(
-        env, admin_agent.address, mock_aggregator_contract["bytecode"], [10**8]
+        env, ZERO_ADDRESS, mock_aggregator_contract["bytecode"], [10**8]
     )
 
     aave_acl_admin = aave_pool_addresses_provider_abi.getACLAdmin.call(
-        env, admin_agent.address, aave_address_provider, []
+        env, ZERO_ADDRESS, aave_address_provider, []
     )[0][0]
     aave_acl_admin_address = verbs.utils.hex_to_bytes(aave_acl_admin)
 

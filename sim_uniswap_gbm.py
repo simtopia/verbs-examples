@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import verbs
 
-from agents.admin_agent import AdminAgent
+from agents import ZERO_ADDRESS
 from agents.uniswap_agent import UniswapAgent
 
 WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
@@ -84,16 +84,13 @@ if __name__ == "__main__":
     dai_address = verbs.utils.hex_to_bytes(DAI)
     swap_router_address = verbs.utils.hex_to_bytes(SWAP_ROUTER)
 
-    # Create an admin agent
-    admin_agent = AdminAgent(env, i=1)
-
     # Example: Use uniswap_factory contract to get the address of WETH-DAI
     # pool with fee 3000
     fee = 3000
     get_pool_args = uniswap_factory_abi.getPool.encode([WETH, DAI, fee])
     pool_address = uniswap_factory_abi.getPool.call(
         env,
-        admin_agent.address,
+        ZERO_ADDRESS,
         verbs.utils.hex_to_bytes(UNISWAP_V3_FACTORY),
         [WETH, DAI, fee],
     )[0][0]
