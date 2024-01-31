@@ -97,6 +97,7 @@ if __name__ == "__main__":
 
     # Sanity check
     assert pool_address == UNISWAP_WETH_DAI.lower()
+    pool_address = verbs.utils.hex_to_bytes(pool_address)
 
     # ------------------------
     # Initialize Uniswap agent
@@ -109,9 +110,9 @@ if __name__ == "__main__":
         mu=0.0,
         sigma=0.3,
         swap_router_abi=swap_router_abi,
-        swap_router_address=SWAP_ROUTER,
-        token_a_address=WETH,
-        token_b_address=DAI,
+        swap_router_address=swap_router_address,
+        token_a_address=weth_address,
+        token_b_address=dai_address,
         uniswap_pool_abi=uniswap_pool_abi,
         uniswap_pool_address=pool_address,
     )

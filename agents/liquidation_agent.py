@@ -11,16 +11,16 @@ class LiquidationAgent:
         i: int,
         pool_implementation_abi,
         mintable_erc20_abi,
-        pool_address: str,
-        token_a_address: str,
-        token_b_address: str,
+        pool_address: bytes,
+        token_a_address: bytes,
+        token_b_address: bytes,
         liquidation_addresses: typing.List,
         uniswap_pool_abi,
         quoter_abi,
         swap_router_abi,
-        uniswap_pool_address: str,
-        quoter_address: str,
-        swap_router_address: str,
+        uniswap_pool_address: bytes,
+        quoter_address: bytes,
+        swap_router_address: bytes,
         uniswap_fee: int,
     ):
         self.address = verbs.utils.int_to_address(i)
@@ -28,16 +28,14 @@ class LiquidationAgent:
 
         # Aave
         self.pool_implementation_abi = pool_implementation_abi
-        self.pool_address = verbs.utils.hex_to_bytes(pool_address)
+        self.pool_address = pool_address
         self.liquidation_addresses = liquidation_addresses
 
-        # tokens
-        self.token_a_address = verbs.utils.hex_to_bytes(
-            token_a_address
-        )  # collateral token - risky asset
-        self.token_b_address = verbs.utils.hex_to_bytes(
-            token_b_address
-        )  # debt token - stablecoin
+        # Tokens
+        # collateral token - risky asset
+        self.token_a_address = token_a_address
+        # Debt token - stablecoin
+        self.token_b_address = token_b_address
 
         self.decimals_token_b = mintable_erc20_abi.decimals.call(
             env, self.address, self.token_b_address, []
@@ -49,9 +47,9 @@ class LiquidationAgent:
         self.quoter_abi = quoter_abi
         self.swap_router_abi = swap_router_abi
 
-        self.uniswap_pool_address = verbs.utils.hex_to_bytes(uniswap_pool_address)
-        self.quoter_address = verbs.utils.hex_to_bytes(quoter_address)
-        self.swap_router_address = verbs.utils.hex_to_bytes(swap_router_address)
+        self.uniswap_pool_address = uniswap_pool_address
+        self.quoter_address = quoter_address
+        self.swap_router_address = swap_router_address
 
         self.uniswap_fee = uniswap_fee
 
@@ -63,7 +61,8 @@ class LiquidationAgent:
         self.step = 0
 
     def accountability(self, env, liquidation_address, amount: int) -> bool:
-        """Makes the accountability of a liquidation and returns a boolean indicating
+        """
+        Makes the accountability of a liquidation and returns a boolean indicating
         whether the liquidation is profitable or not
         """
 
@@ -213,4 +212,4 @@ class LiquidationAgent:
             ],
         )[0][0]
 
-        return (current_balance_collateral_asset, current_balance_debt_asset)
+        return current_balance_collateral_asset, current_balance_debt_asset

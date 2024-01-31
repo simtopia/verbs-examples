@@ -45,8 +45,7 @@ class Gbm:
         return np.sqrt(price) * 2**96
 
     def get_price_token_a(self):
-        price = self.token_a_price_with_impact / self.token_b_price
-        return price
+        return self.token_a_price_with_impact / self.token_b_price
 
 
 class UniswapAgent:
@@ -62,40 +61,40 @@ class UniswapAgent:
         swap_router_abi,
         uniswap_pool_abi,
         fee: int,
-        swap_router_address: str,
-        uniswap_pool_address: str,
+        swap_router_address: bytes,
+        uniswap_pool_address: bytes,
         # token A is considered to be the risky asset
-        token_a_address: str,
+        token_a_address: bytes,
         # token B is considered to be less risky / stablecoin
-        token_b_address: str,
+        token_b_address: bytes,
         mu: float,
         sigma: float,
         dt: float,
     ):
-        self.net = env
         self.address = verbs.utils.int_to_address(i)
-        self.net.create_account(self.address, int(1e25))
+        env.create_account(self.address, int(1e25))
+
         self.swap_router_abi = swap_router_abi
         self.uniswap_pool_abi = uniswap_pool_abi
-        self.swap_router_address = verbs.utils.hex_to_bytes(swap_router_address)
-        self.uniswap_pool_address = verbs.utils.hex_to_bytes(uniswap_pool_address)
+        self.swap_router_address = swap_router_address
+        self.uniswap_pool_address = uniswap_pool_address
         self.uniswap_fee = fee
         self.weth_address = token_a_address
         self.dai_address = token_b_address
 
         self.token_b = token_b_address  # stablecoin.
         self.token0_address = self.uniswap_pool_abi.token0.call(
-            self.net, self.address, self.uniswap_pool_address, []
+            env, self.address, self.uniswap_pool_address, []
         )[0][0]
         self.token1_address = self.uniswap_pool_abi.token1.call(
-            self.net, self.address, self.uniswap_pool_address, []
+            env, self.address, self.uniswap_pool_address, []
         )[0][0]
         self.fee = fee
 
         # external market model.
         # we initialise it at the same price as the Uniswap price
         # Uniswap returns price of token0 in terms of token1
-        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap()
+        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap(env)
 
         if self.token_b == self.token1_address:
             token_a_price = (sqrt_price_uniswap_x96 / 2**96) ** 2
@@ -119,13 +118,13 @@ class UniswapAgent:
         # step of simulator
         self.step = 0
 
-    def get_sqrt_price_x96_uniswap(self) -> int:
+    def get_sqrt_price_x96_uniswap(self, env) -> int:
         """get sqrt price from uniswap pool.
         Uniswap returns price of token0 in terms of token1
         """
 
         slot0 = self.uniswap_pool_abi.slot0.call(
-            self.net, self.address, self.uniswap_pool_address, []
+            env, self.address, self.uniswap_pool_address, []
         )[0]
         sqrt_price_uniswap_x96 = slot0[0]
         return sqrt_price_uniswap_x96
@@ -205,15 +204,15 @@ class UniswapAgent:
         else:
             return None
 
-    def update(self, rng: np.random.Generator, *args):
+    def update(self, rng: np.random.Generator, env):
         # get sqrt price from uniswap pool. Uniswap returns price of
         # token0 in terms of token1
-        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap()
+        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap(env)
 
         # We assume that trades on Uniswap have a price impact on the external
         # exchange. This is accumulated with an exponential decay
         if self.step > 0:
-            current_price_impact = self.get_price_impact_in_external_market()
+            current_price_impact = self.get_price_impact_in_external_market(env)
             self.transient_impact = (
                 np.exp(-self.beta * self.dt) * self.transient_impact
                 + current_price_impact
@@ -221,7 +220,7 @@ class UniswapAgent:
 
         # get liquidity from uniswap pool
         liquidity = self.uniswap_pool_abi.liquidity.call(
-            self.net, self.address, self.uniswap_pool_address, []
+            env, self.address, self.uniswap_pool_address, []
         )[0][0]
 
         # external market update
@@ -236,11 +235,11 @@ class UniswapAgent:
                 self.external_market.get_sqrt_price_token_b_x96()
             )
 
-        # find encoded swap params so that price of uniswap after
+        # Find encoded swap params so that price of uniswap after
         # swap matches the price of the external market
         # sqrt_price_external_market > sqrt_price_uniswap_x96,
         # the uniswap agent wants to buy collateral asset
-        #  (and sell debt asset) to increase the price of Uniswap
+        # (and sell debt asset) to increase the price of Uniswap
         # sqrt_price_external_market < sqrt_price_uniswap_x96,
         # the uniswap agent wants to sell collateral asset
         # (and buy debt asset) to decrease the price of Uniswap
@@ -264,9 +263,9 @@ class UniswapAgent:
             return []
 
     def record(self, env):
-        # get sqrt price from uniswap pool. Uniswap returns price of
+        # Get sqrt price from uniswap pool. Uniswap returns price of
         # token0 in terms of token1
-        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap()
+        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap(env)
 
         if self.token_b == self.token1_address:
             sqrt_price_external_market_x96 = (
@@ -282,12 +281,12 @@ class UniswapAgent:
 
         return (sqrt_price_uniswap**2, sqrt_price_external_market**2)
 
-    def get_price_impact_in_external_market(self) -> float:
+    def get_price_impact_in_external_market(self, env) -> float:
         """
         We assume that a trade in Uniswap has transient impact
         on the external exchange
         """
-        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap()
+        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap(env)
         if self.token_b == self.token1_address:
             token_a_price_uniswap = (sqrt_price_uniswap_x96 / 2**96) ** 2
         else:

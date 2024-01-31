@@ -172,6 +172,7 @@ if __name__ == "__main__":
     aave_pool_address = verbs.utils.hex_to_bytes(AAVE_POOL)
     aave_address_provider = verbs.utils.hex_to_bytes(AAVE_ADDRESS_PROVIDER)
     aave_acl_manager_address = verbs.utils.hex_to_bytes(AAVE_ACL_MANAGER)
+    aave_oracle_address = verbs.utils.hex_to_bytes(AAVE_ORACLE)
 
     # -------------------------
     # Initialize Uniswap agent
@@ -231,10 +232,10 @@ if __name__ == "__main__":
             pool_implementation_abi=aave_pool_abi,
             oracle_abi=aave_oracle_abi,
             mintable_erc20_abi=weth_erc20_abi,
-            pool_address=AAVE_POOL,
-            oracle_address=AAVE_ORACLE,
-            token_a_address=WETH,
-            token_b_address=DAI,
+            pool_address=aave_pool_address,
+            oracle_address=aave_oracle_address,
+            token_a_address=weth_address,
+            token_b_address=dai_address,
             activation_rate=0.5,
         )
         for i in range(n_borrow_agents)
@@ -265,18 +266,19 @@ if __name__ == "__main__":
         i=1000,
         pool_implementation_abi=aave_pool_abi,
         mintable_erc20_abi=weth_erc20_abi,
-        pool_address=AAVE_POOL,
-        token_a_address=WETH,
-        token_b_address=DAI,
+        pool_address=aave_pool_address,
+        token_a_address=weth_address,
+        token_b_address=dai_address,
         liquidation_addresses=[borrow_agent.address for borrow_agent in borrow_agents],
         uniswap_pool_abi=uniswap_pool_abi,
         quoter_abi=quoter_abi,
         swap_router_abi=swap_router_abi,
-        uniswap_pool_address=UNISWAP_WETH_DAI,
-        quoter_address=UNISWAP_QUOTER,
-        swap_router_address=SWAP_ROUTER,
+        uniswap_pool_address=uniswap_weth_dai,
+        quoter_address=verbs.utils.hex_to_bytes(UNISWAP_QUOTER),
+        swap_router_address=swap_router_address,
         uniswap_fee=fee,
     )
+
     weth_erc20_abi.deposit.execute(
         address=weth_address,
         args=[],
