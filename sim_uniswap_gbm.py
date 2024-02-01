@@ -3,13 +3,13 @@ In this example we model an agent that trades between a Uniswap pool and
 and an external market, modelled by a Geometric Brownian Motion, in order
 to make a profit.
 
-    - We consider the Uniswap v3 pool for WETH and DAI with fee 3000
+    - We consider the Uniswap v3 pool for WETH and DAI with fee 3000.
     - The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
       external market is modelled by a GBM.
     - The goal of the simulation is for the price of Uniswap to follow the price
-      in the external
-      market. The Uniswap agent takes of that in each step, by making the right trade
-      so that the new Uniswap price is the same as the price in the external market.
+      in the external market. The Uniswap agent takes of that in each step, by
+      making the right trade so that the new Uniswap price is the same as the
+      price in the external market.
 """
 
 
@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import verbs
 
-from agents.admin_agent import AdminAgent
+from agents import ZERO_ADDRESS
 from agents.uniswap_agent import UniswapAgent
 
 WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
@@ -49,8 +49,9 @@ def plot_results(results: List[List[Tuple[int, int]]]):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--key", type=str, help="private key from Alchemy")
+
+    parser = argparse.ArgumentParser(prog="Uniswap agent-based simulation")
+    parser.add_argument("key", type=str, help="Alchemy API key")
     parser.add_argument(
         "--block", type=int, default=18784000, help="Ethereum block number"
     )
@@ -71,44 +72,47 @@ if __name__ == "__main__":
     uniswap_pool_abi = verbs.abi.load_abi("abi/UniswapV3Pool.abi")
     uniswap_factory_abi = verbs.abi.load_abi("abi/UniswapV3Factory.abi")
 
-    # Fork mainnet
-    net = verbs.envs.ForkEnv(
+    # Fork environment from mainnet
+    env = verbs.envs.ForkEnv(
         "https://eth-mainnet.g.alchemy.com/v2/{}".format(key),
         0,
         block_number,
     )
 
-    # create an admin agent
-    admin_agent = AdminAgent(net, i=1)
+    # Convert addresses
+    weth_address = verbs.utils.hex_to_bytes(WETH)
+    dai_address = verbs.utils.hex_to_bytes(DAI)
+    swap_router_address = verbs.utils.hex_to_bytes(SWAP_ROUTER)
 
     # Example: Use uniswap_factory contract to get the address of WETH-DAI
     # pool with fee 3000
     fee = 3000
     get_pool_args = uniswap_factory_abi.getPool.encode([WETH, DAI, fee])
     pool_address = uniswap_factory_abi.getPool.call(
-        net,
-        admin_agent.address,
+        env,
+        ZERO_ADDRESS,
         verbs.utils.hex_to_bytes(UNISWAP_V3_FACTORY),
         [WETH, DAI, fee],
     )[0][0]
 
     # Sanity check
     assert pool_address == UNISWAP_WETH_DAI.lower()
+    pool_address = verbs.utils.hex_to_bytes(pool_address)
 
     # ------------------------
     # Initialize Uniswap agent
     # ------------------------
     agent = UniswapAgent(
-        env=net,
+        env=env,
         dt=0.01,
         fee=fee,
         i=10,  # idx of agent
         mu=0.0,
         sigma=0.3,
         swap_router_abi=swap_router_abi,
-        swap_router_address=SWAP_ROUTER,
-        token_a_address=WETH,
-        token_b_address=DAI,
+        swap_router_address=swap_router_address,
+        token_a_address=weth_address,
+        token_b_address=dai_address,
         uniswap_pool_abi=uniswap_pool_abi,
         uniswap_pool_address=pool_address,
     )
@@ -117,38 +121,39 @@ if __name__ == "__main__":
     # - Mint DAI and WETH
     # - Approve the Swap Router to use these in their transactions
     weth_erc20_abi.deposit.execute(
-        address=verbs.utils.hex_to_bytes(WETH),
+        address=weth_address,
         args=[],
-        env=net,
+        env=env,
         sender=agent.address,
         value=int(1e24),
     )
 
     weth_erc20_abi.approve.execute(
         sender=agent.address,
-        address=verbs.utils.hex_to_bytes(WETH),
-        env=net,
-        args=[verbs.utils.hex_to_bytes(SWAP_ROUTER), int(1e24)],
+        address=weth_address,
+        env=env,
+        args=[swap_router_address, int(1e24)],
     )
 
     dai_abi.mint.execute(
-        address=verbs.utils.hex_to_bytes(DAI),
+        address=dai_address,
         sender=verbs.utils.hex_to_bytes(DAI_ADMIN),
-        env=net,
+        env=env,
         args=[agent.address, int(1e30)],
     )
 
     dai_abi.approve.execute(
         sender=agent.address,
-        address=verbs.utils.hex_to_bytes(DAI),
-        env=net,
-        args=[verbs.utils.hex_to_bytes(SWAP_ROUTER), int(1e30)],
+        address=dai_address,
+        env=env,
+        args=[swap_router_address, int(1e30)],
     )
 
     # run simulation
     # - The Uniswap Agent records the price of the external market,
     #   and the price of Uniswap.
     # - Plot the prices and save the plot in results/uniswap_gbm_sim/prices.pdf
-    runner = verbs.sim.Sim(101, net, [agent])
+    runner = verbs.sim.Sim(101, env, [agent])
     results = runner.run(n_steps=n_steps)
+
     plot_results(results)

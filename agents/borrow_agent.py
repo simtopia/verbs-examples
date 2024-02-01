@@ -10,25 +10,25 @@ class BorrowAgent:
         pool_implementation_abi,
         oracle_abi,
         mintable_erc20_abi,
-        pool_address: str,
-        oracle_address: str,
-        token_a_address: str,
-        token_b_address: str,
+        pool_address: bytes,
+        oracle_address: bytes,
+        token_a_address: bytes,
+        token_b_address: bytes,
         activation_rate: float,
     ):
         self.address = verbs.utils.int_to_address(i)
         env.create_account(self.address, int(1e30))
 
         self.pool_implementation_abi = pool_implementation_abi
-        self.pool_address = verbs.utils.hex_to_bytes(pool_address)
-        self.oracle_address = verbs.utils.hex_to_bytes(oracle_address)
+        self.pool_address = pool_address
+        self.oracle_address = oracle_address
         self.oracle_abi = oracle_abi
         self.mintable_erc20_abi = mintable_erc20_abi
 
         # collateral token - risky asset
-        self.token_a_address = verbs.utils.hex_to_bytes(token_a_address)
+        self.token_a_address = token_a_address
         # debt token - stablecoin
-        self.token_b_address = verbs.utils.hex_to_bytes(token_b_address)
+        self.token_b_address = token_b_address
 
         self.decimals_token_b = mintable_erc20_abi.decimals.call(
             env, self.address, self.token_b_address, []
@@ -63,7 +63,7 @@ class BorrowAgent:
                 # available to borrow in base currency (in Aave, base currency is USD)
                 available_borrow_base = user_data[2]
 
-                # we convert the availble to borrow to borrow asset units
+                # we convert the available to borrow to borrow asset units
                 borrow_asset_price = self.oracle_abi.getAssetPrice.call(
                     env, self.address, self.oracle_address, [self.token_b_address]
                 )[0][0]
