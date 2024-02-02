@@ -185,11 +185,11 @@ if __name__ == "__main__":
         mu=0.0,
         sigma=sigma,
         swap_router_abi=swap_router_abi,
-        swap_router_address=SWAP_ROUTER,
-        token_a_address=WETH,
-        token_b_address=DAI,
+        swap_router_address=swap_router_address,
+        token_a_address=weth_address,
+        token_b_address=dai_address,
         uniswap_pool_abi=uniswap_pool_abi,
-        uniswap_pool_address=pool_address,
+        uniswap_pool_address=uniswap_weth_dai,
     )
 
     # Mint and approve tokens
