@@ -66,7 +66,7 @@ AAVE_ADDRESS_PROVIDER = "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e"
 AAVE_ACL_MANAGER = "0xc2aaCf6553D20d1e9d78E365AAba8032af9c85b0"
 
 
-def runner(n_steps: int, n_borrow_agents: int, env, sigma: float):
+def runner(seed: int, n_steps: int, n_borrow_agents: int, env, sigma: float):
 
     # ABIs
     swap_router_abi = verbs.abi.load_abi(f"{PATH}/../abi/SwapRouter.abi")
@@ -305,24 +305,29 @@ def runner(n_steps: int, n_borrow_agents: int, env, sigma: float):
 
     # Run simulation
     agents = [uniswap_agent] + borrow_agents + [liquidation_agent]
-    runner = verbs.sim.Sim(10, env, agents)
+    runner = verbs.sim.Sim(seed, env, agents)
     results = runner.run(n_steps=n_steps)
 
     return env, results
 
 
 def init_cache(
-    key: str, block_number: int, n_steps: int, n_borrow_agents: int, sigma: float
+    key: str,
+    block_number: int,
+    seed: int,
+    n_steps: int,
+    n_borrow_agents: int,
+    sigma: float,
 ):
 
     # Fork environment from mainnet
     env = verbs.envs.ForkEnv(
         "https://eth-mainnet.g.alchemy.com/v2/{}".format(key),
-        0,
+        seed,
         block_number,
     )
 
-    env, _ = runner(n_steps, n_borrow_agents, env, sigma)
+    env, _ = runner(seed, n_steps, n_borrow_agents, env, sigma)
 
     return env.export_cache()
 
@@ -336,6 +341,6 @@ def run_from_cache(seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
 
     env = verbs.envs.EmptyEnv(seed, cache=cache)
 
-    _, results = runner(n_steps, n_borrow_agents, env, sigma)
+    _, results = runner(seed, n_steps, n_borrow_agents, env, sigma)
 
     return results

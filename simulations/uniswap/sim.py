@@ -30,7 +30,7 @@ UNISWAP_WETH_DAI = "0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8"
 SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 
 
-def runner(n_steps: int, env):
+def runner(seed: int, n_steps: int, env):
 
     # ABIs
     swap_router_abi = verbs.abi.load_abi(f"{PATH}/../abi/SwapRouter.abi")
@@ -112,22 +112,22 @@ def runner(n_steps: int, env):
     # run simulation
     # - The Uniswap Agent records the price of the external market,
     #   and the price of Uniswap.
-    runner = verbs.sim.Sim(101, env, [agent])
+    runner = verbs.sim.Sim(seed, env, [agent])
     results = runner.run(n_steps=n_steps)
 
     return env, results
 
 
-def init_cache(key: str, block_number: int, n_steps: int):
+def init_cache(key: str, block_number: int, seed: int, n_steps: int):
 
     # Fork environment from mainnet
     env = verbs.envs.ForkEnv(
         "https://eth-mainnet.g.alchemy.com/v2/{}".format(key),
-        0,
+        seed,
         block_number,
     )
 
-    env, _ = runner(n_steps, env)
+    env, _ = runner(seed, n_steps, env)
 
     return env.export_cache()
 
@@ -141,6 +141,6 @@ def run_from_cache(seed: int, n_steps: int):
 
     env = verbs.envs.EmptyEnv(seed, cache=cache)
 
-    _, results = runner(n_steps, env)
+    _, results = runner(seed, n_steps, env)
 
     return results
