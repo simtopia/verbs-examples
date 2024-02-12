@@ -138,7 +138,7 @@ class LiquidationAgent:
         # filter risky positions
         risky_positions = filter(lambda x: x[1][5] < 10**18, users_data)
 
-        # filter thoses positions for which liquidating is profitable
+        # filter those positions for which liquidating is profitable
         # Note: https://docs.aave.com/developers/core-contracts/pool#liquidationcall
         # debtToCover parameter can be set to uint(-1) and the protocol will proceed
         # with the highest possible liquidation allowed by the close factor.
@@ -160,6 +160,7 @@ class LiquidationAgent:
                         10**32,
                         False,
                     ],
+                    checked=False,
                 )
             )
 

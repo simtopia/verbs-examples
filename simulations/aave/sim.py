@@ -39,20 +39,16 @@ We consider the following pools and tokens:
 Reference: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
 """
 
-
-import argparse
 import json
-import os
-from typing import List, Tuple
+from pathlib import Path
 
-import matplotlib.pyplot as plt
-import numpy as np
 import verbs
 
-from agents import ZERO_ADDRESS
-from agents.borrow_agent import BorrowAgent
-from agents.liquidation_agent import LiquidationAgent
-from agents.uniswap_agent import UniswapAgent
+from simulations.agents.borrow_agent import BorrowAgent
+from simulations.agents.liquidation_agent import LiquidationAgent
+from simulations.agents.uniswap_agent import UniswapAgent
+
+PATH = Path(__file__).parent
 
 WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
 DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
@@ -70,91 +66,30 @@ AAVE_ADDRESS_PROVIDER = "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e"
 AAVE_ACL_MANAGER = "0xc2aaCf6553D20d1e9d78E365AAba8032af9c85b0"
 
 
-def plot_results(
-    results: List[List[Tuple]],
-    n_borrow_agents: int,
-):
-    n_steps = len(results)
-    records_uniswap_agent = [x[0] for x in results]
-    records_borrow_agents = [x[1 : (1 + n_borrow_agents)] for x in results]
-
-    prices = np.array(records_uniswap_agent).reshape(n_steps, 2)
-    health_factors = np.array(records_borrow_agents).reshape(n_steps, -1, 2)
-
-    plot_dir = "results/sim_aave_uniswap"
-
-    if not os.path.exists(plot_dir):
-        os.makedirs(plot_dir)
-
-    fig, ax = plt.subplots(figsize=(6, 3))
-    ax.plot(prices[:, 0], label="Uniswap price")
-    ax.plot(prices[:, 1], label="External market price")
-    ax.legend()
-    fig.savefig(os.path.join(plot_dir, "prices.pdf"))
-
-    fig, ax = plt.subplots(figsize=(6, 3))
-
-    for i in range(n_borrow_agents):
-        hf = health_factors[:, i, :]
-        hf = hf[hf[:, 1] < 100, :]
-        ax.plot(hf[:, 0], hf[:, 1])
-
-    ax.set_xlabel("simulation step")
-    ax.set_ylabel("Health Factor")
-    fig.savefig(os.path.join(plot_dir, "health_factors.pdf"))
-
-
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(prog="AAVE agent-based simulation")
-    parser.add_argument("key", type=str, help="Alchemy API key")
-    parser.add_argument(
-        "--block", type=int, default=18784000, help="Ethereum block number"
-    )
-    parser.add_argument(
-        "--n_borrow_agents", type=int, default=2, help="Number of borrowing agents"
-    )
-    parser.add_argument("--sigma", type=float, default=0.3, help="price volatility")
-    parser.add_argument(
-        "--n_steps", type=int, default=100, help="Number of steps of the simulation"
-    )
-
-    args = parser.parse_args()
-    key = args.key
-    block_number = args.block
-    n_borrow_agents = args.n_borrow_agents
-    sigma = args.sigma
-    n_steps = args.n_steps
+def runner(n_steps: int, n_borrow_agents: int, env, sigma: float):
 
     # ABIs
-    swap_router_abi = verbs.abi.load_abi("abi/SwapRouter.abi")
-    dai_abi = verbs.abi.load_abi("abi/dai.abi")
-    weth_erc20_abi = verbs.abi.load_abi("abi/WETHMintableERC20.abi")
-    uniswap_pool_abi = verbs.abi.load_abi("abi/UniswapV3Pool.abi")
-    uniswap_factory_abi = verbs.abi.load_abi("abi/UniswapV3Factory.abi")
-    aave_pool_abi = verbs.abi.load_abi("abi/Pool-Implementation.abi")
-    aave_oracle_abi = verbs.abi.load_abi("abi/AaveOracle.abi")
-    quoter_abi = verbs.abi.load_abi("abi/Quoter_v2.abi")
-    uniswap_aggregator_abi = verbs.abi.load_abi("abi/UniswapAggregator.abi")
-    mock_aggregator_abi = verbs.abi.load_abi("abi/MockAggregator.abi")
+    swap_router_abi = verbs.abi.load_abi(f"{PATH}/../abi/SwapRouter.abi")
+    dai_abi = verbs.abi.load_abi(f"{PATH}/../abi/dai.abi")
+    weth_erc20_abi = verbs.abi.load_abi(f"{PATH}/../abi/WETHMintableERC20.abi")
+    uniswap_pool_abi = verbs.abi.load_abi(f"{PATH}/../abi/UniswapV3Pool.abi")
+    uniswap_factory_abi = verbs.abi.load_abi(f"{PATH}/../abi/UniswapV3Factory.abi")
+    aave_pool_abi = verbs.abi.load_abi(f"{PATH}/../abi/Pool-Implementation.abi")
+    aave_oracle_abi = verbs.abi.load_abi(f"{PATH}/../abi/AaveOracle.abi")
+    quoter_abi = verbs.abi.load_abi(f"{PATH}/../abi/Quoter_v2.abi")
+    uniswap_aggregator_abi = verbs.abi.load_abi(f"{PATH}/../abi/UniswapAggregator.abi")
+    mock_aggregator_abi = verbs.abi.load_abi(f"{PATH}/../abi/MockAggregator.abi")
     aave_pool_addresses_provider_abi = verbs.abi.load_abi(
-        "abi/PoolAddressesProvider.abi"
+        f"{PATH}/../abi/PoolAddressesProvider.abi"
     )
-    aave_acl_manager_abi = verbs.abi.load_abi("abi/ACLManager.abi")
-
-    # Fork environment from mainnet
-    env = verbs.envs.ForkEnv(
-        "https://eth-mainnet.g.alchemy.com/v2/{}".format(key),
-        0,
-        block_number,
-    )
+    aave_acl_manager_abi = verbs.abi.load_abi(f"{PATH}/../abi/ACLManager.abi")
 
     # Use uniswap_factory contract to get the address of WETH-DAI pool
     fee = 3000
-    get_pool_args = uniswap_factory_abi.getPool.encode([WETH, DAI, fee])
+
     pool_address = uniswap_factory_abi.getPool.call(
         env,
-        ZERO_ADDRESS,
+        verbs.utils.ZERO_ADDRESS,
         verbs.utils.hex_to_bytes(UNISWAP_V3_FACTORY),
         [WETH, DAI, fee],
     )[0][0]
@@ -313,12 +248,12 @@ if __name__ == "__main__":
     # ----------------------------------------------
 
     # We load the Uniswap Aggregator contract that gets the price from the Uniswap pool
-    with open("abi/UniswapAggregator.json", "r") as f:
+    with open(f"{PATH}/../abi/UniswapAggregator.json", "r") as f:
         uniswap_aggregator_contract = json.load(f)
 
     uniswap_aggregator_address = uniswap_aggregator_abi.constructor.deploy(
         env,
-        ZERO_ADDRESS,
+        verbs.utils.ZERO_ADDRESS,
         uniswap_aggregator_contract["bytecode"],
         [
             uniswap_weth_dai,
@@ -329,15 +264,15 @@ if __name__ == "__main__":
 
     # We load the dummy Mock Aggregator contract that keeps the price of a
     # token constant (that will be our numeraire)
-    with open("abi/MockAggregator.json", "r") as f:
+    with open(f"{PATH}/../abi/MockAggregator.json", "r") as f:
         mock_aggregator_contract = json.load(f)
 
     mock_aggregator_address = mock_aggregator_abi.constructor.deploy(
-        env, ZERO_ADDRESS, mock_aggregator_contract["bytecode"], [10**8]
+        env, verbs.utils.ZERO_ADDRESS, mock_aggregator_contract["bytecode"], [10**8]
     )
 
     aave_acl_admin = aave_pool_addresses_provider_abi.getACLAdmin.call(
-        env, ZERO_ADDRESS, aave_address_provider, []
+        env, verbs.utils.ZERO_ADDRESS, aave_address_provider, []
     )[0][0]
     aave_acl_admin_address = verbs.utils.hex_to_bytes(aave_acl_admin)
 
@@ -373,4 +308,34 @@ if __name__ == "__main__":
     runner = verbs.sim.Sim(10, env, agents)
     results = runner.run(n_steps=n_steps)
 
-    plot_results(results, n_borrow_agents)
+    return env, results
+
+
+def init_cache(
+    key: str, block_number: int, n_steps: int, n_borrow_agents: int, sigma: float
+):
+
+    # Fork environment from mainnet
+    env = verbs.envs.ForkEnv(
+        "https://eth-mainnet.g.alchemy.com/v2/{}".format(key),
+        0,
+        block_number,
+    )
+
+    env, _ = runner(n_steps, n_borrow_agents, env, sigma)
+
+    return env.export_cache()
+
+
+def run_from_cache(seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
+
+    with open(f"{PATH}/cache.json", "r") as f:
+        cache_json = json.load(f)
+
+    cache = verbs.utils.cache_from_json(cache_json)
+
+    env = verbs.envs.EmptyEnv(seed, cache=cache)
+
+    _, results = runner(n_steps, n_borrow_agents, env, sigma)
+
+    return results

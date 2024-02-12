@@ -12,17 +12,14 @@ to make a profit.
       price in the external market.
 """
 
+import json
+from pathlib import Path
 
-import argparse
-import os
-from typing import List, Tuple
-
-import matplotlib.pyplot as plt
-import numpy as np
 import verbs
 
-from agents import ZERO_ADDRESS
-from agents.uniswap_agent import UniswapAgent
+from simulations.agents.uniswap_agent import UniswapAgent
+
+PATH = Path(__file__).parent
 
 WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
 DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
@@ -33,51 +30,14 @@ UNISWAP_WETH_DAI = "0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8"
 SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 
 
-def plot_results(results: List[List[Tuple[int, int]]]):
-    n_steps = len(results)
-    prices = np.array(results).reshape(n_steps, 2)
-
-    plot_dir = "results/sim_uniswap_gbm"
-    if not os.path.exists(plot_dir):
-        os.makedirs(plot_dir)
-
-    fig, ax = plt.subplots(figsize=(6, 3))
-    ax.plot(prices[:, 0], label="Uniswap price")
-    ax.plot(prices[:, 1], label="External market price")
-    ax.legend()
-    fig.savefig(os.path.join(plot_dir, "prices.pdf"))
-
-
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(prog="Uniswap agent-based simulation")
-    parser.add_argument("key", type=str, help="Alchemy API key")
-    parser.add_argument(
-        "--block", type=int, default=18784000, help="Ethereum block number"
-    )
-    parser.add_argument(
-        "--n_steps", type=int, default=100, help="Number of steps of the simulation"
-    )
-
-    args = parser.parse_args()
-
-    key = args.key
-    block_number = args.block
-    n_steps = args.n_steps
+def runner(n_steps: int, env):
 
     # ABIs
-    swap_router_abi = verbs.abi.load_abi("abi/SwapRouter.abi")
-    dai_abi = verbs.abi.load_abi("abi/dai.abi")
-    weth_erc20_abi = verbs.abi.load_abi("abi/WETHMintableERC20.abi")
-    uniswap_pool_abi = verbs.abi.load_abi("abi/UniswapV3Pool.abi")
-    uniswap_factory_abi = verbs.abi.load_abi("abi/UniswapV3Factory.abi")
-
-    # Fork environment from mainnet
-    env = verbs.envs.ForkEnv(
-        "https://eth-mainnet.g.alchemy.com/v2/{}".format(key),
-        0,
-        block_number,
-    )
+    swap_router_abi = verbs.abi.load_abi(f"{PATH}/../abi/SwapRouter.abi")
+    dai_abi = verbs.abi.load_abi(f"{PATH}/../abi/dai.abi")
+    weth_erc20_abi = verbs.abi.load_abi(f"{PATH}/../abi/WETHMintableERC20.abi")
+    uniswap_pool_abi = verbs.abi.load_abi(f"{PATH}/../abi/UniswapV3Pool.abi")
+    uniswap_factory_abi = verbs.abi.load_abi(f"{PATH}/../abi/UniswapV3Factory.abi")
 
     # Convert addresses
     weth_address = verbs.utils.hex_to_bytes(WETH)
@@ -87,10 +47,10 @@ if __name__ == "__main__":
     # Example: Use uniswap_factory contract to get the address of WETH-DAI
     # pool with fee 3000
     fee = 3000
-    get_pool_args = uniswap_factory_abi.getPool.encode([WETH, DAI, fee])
+
     pool_address = uniswap_factory_abi.getPool.call(
         env,
-        ZERO_ADDRESS,
+        verbs.utils.ZERO_ADDRESS,
         verbs.utils.hex_to_bytes(UNISWAP_V3_FACTORY),
         [WETH, DAI, fee],
     )[0][0]
@@ -152,8 +112,35 @@ if __name__ == "__main__":
     # run simulation
     # - The Uniswap Agent records the price of the external market,
     #   and the price of Uniswap.
-    # - Plot the prices and save the plot in results/uniswap_gbm_sim/prices.pdf
     runner = verbs.sim.Sim(101, env, [agent])
     results = runner.run(n_steps=n_steps)
 
-    plot_results(results)
+    return env, results
+
+
+def init_cache(key: str, block_number: int, n_steps: int):
+
+    # Fork environment from mainnet
+    env = verbs.envs.ForkEnv(
+        "https://eth-mainnet.g.alchemy.com/v2/{}".format(key),
+        0,
+        block_number,
+    )
+
+    env, _ = runner(n_steps, env)
+
+    return env.export_cache()
+
+
+def run_from_cache(seed: int, n_steps: int):
+
+    with open(f"{PATH}/cache.json", "r") as f:
+        cache_json = json.load(f)
+
+    cache = verbs.utils.cache_from_json(cache_json)
+
+    env = verbs.envs.EmptyEnv(seed, cache=cache)
+
+    _, results = runner(n_steps, env)
+
+    return results
