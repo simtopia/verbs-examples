@@ -32,7 +32,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "verbs == 0.1.1",
+  "verbs == 0.2.0",
   "matplotlib"
 ]
 
