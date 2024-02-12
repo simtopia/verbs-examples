@@ -17,6 +17,7 @@ from pathlib import Path
 
 import verbs
 
+from simulations import abi
 from simulations.agents.uniswap_agent import UniswapAgent
 
 PATH = Path(__file__).parent
@@ -30,14 +31,7 @@ UNISWAP_WETH_DAI = "0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8"
 SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 
 
-def runner(seed: int, n_steps: int, env):
-
-    # ABIs
-    swap_router_abi = verbs.abi.load_abi(f"{PATH}/../abi/SwapRouter.abi")
-    dai_abi = verbs.abi.load_abi(f"{PATH}/../abi/dai.abi")
-    weth_erc20_abi = verbs.abi.load_abi(f"{PATH}/../abi/WETHMintableERC20.abi")
-    uniswap_pool_abi = verbs.abi.load_abi(f"{PATH}/../abi/UniswapV3Pool.abi")
-    uniswap_factory_abi = verbs.abi.load_abi(f"{PATH}/../abi/UniswapV3Factory.abi")
+def runner(env, seed: int, n_steps: int):
 
     # Convert addresses
     weth_address = verbs.utils.hex_to_bytes(WETH)
@@ -48,7 +42,7 @@ def runner(seed: int, n_steps: int, env):
     # pool with fee 3000
     fee = 3000
 
-    pool_address = uniswap_factory_abi.getPool.call(
+    pool_address = abi.uniswap_factory.getPool.call(
         env,
         verbs.utils.ZERO_ADDRESS,
         verbs.utils.hex_to_bytes(UNISWAP_V3_FACTORY),
@@ -69,18 +63,18 @@ def runner(seed: int, n_steps: int, env):
         i=10,  # idx of agent
         mu=0.0,
         sigma=0.3,
-        swap_router_abi=swap_router_abi,
+        swap_router_abi=abi.swap_router,
         swap_router_address=swap_router_address,
         token_a_address=weth_address,
         token_b_address=dai_address,
-        uniswap_pool_abi=uniswap_pool_abi,
+        uniswap_pool_abi=abi.uniswap_pool,
         uniswap_pool_address=pool_address,
     )
 
     # mint and approve tokens for the Uniswap agent
     # - Mint DAI and WETH
     # - Approve the Swap Router to use these in their transactions
-    weth_erc20_abi.deposit.execute(
+    abi.weth_erc20.deposit.execute(
         address=weth_address,
         args=[],
         env=env,
@@ -88,21 +82,21 @@ def runner(seed: int, n_steps: int, env):
         value=int(1e24),
     )
 
-    weth_erc20_abi.approve.execute(
+    abi.weth_erc20.approve.execute(
         sender=agent.address,
         address=weth_address,
         env=env,
         args=[swap_router_address, int(1e24)],
     )
 
-    dai_abi.mint.execute(
+    abi.dai.mint.execute(
         address=dai_address,
         sender=verbs.utils.hex_to_bytes(DAI_ADMIN),
         env=env,
         args=[agent.address, int(1e30)],
     )
 
-    dai_abi.approve.execute(
+    abi.dai.approve.execute(
         sender=agent.address,
         address=dai_address,
         env=env,
@@ -127,7 +121,7 @@ def init_cache(key: str, block_number: int, seed: int, n_steps: int):
         block_number,
     )
 
-    env, _ = runner(seed, n_steps, env)
+    env, _ = runner(env, seed, n_steps)
 
     return env.export_cache()
 
@@ -141,6 +135,6 @@ def run_from_cache(seed: int, n_steps: int):
 
     env = verbs.envs.EmptyEnv(seed, cache=cache)
 
-    _, results = runner(seed, n_steps, env)
+    _, results = runner(env, seed, n_steps)
 
     return results
