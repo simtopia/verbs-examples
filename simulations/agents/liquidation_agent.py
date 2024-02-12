@@ -79,35 +79,32 @@ class LiquidationAgent:
             ],
         )[1]
 
-        if liquidation_call_event:
-            decoded_liquidation_call_event = (
-                self.pool_implementation_abi.LiquidationCall.decode(
-                    liquidation_call_event[-1][1]
-                )
+        decoded_liquidation_call_event = (
+            self.pool_implementation_abi.LiquidationCall.decode(
+                liquidation_call_event[-1][1]
             )
+        )
 
-            debt_to_cover = decoded_liquidation_call_event[0]
-            liquidated_collateral_amount = decoded_liquidation_call_event[1]
+        debt_to_cover = decoded_liquidation_call_event[0]
+        liquidated_collateral_amount = decoded_liquidation_call_event[1]
 
-            quote = self.quoter_abi.quoteExactOutputSingle.call(
-                env,
-                self.address,
-                self.quoter_address,
-                [
-                    (
-                        self.token_a_address,
-                        self.token_b_address,
-                        debt_to_cover,
-                        self.uniswap_fee,
-                        0,
-                    )
-                ],
-            )[0]
+        quote = self.quoter_abi.quoteExactOutputSingle.call(
+            env,
+            self.address,
+            self.quoter_address,
+            [
+                (
+                    self.token_a_address,
+                    self.token_b_address,
+                    debt_to_cover,
+                    self.uniswap_fee,
+                    0,
+                )
+            ],
+        )[0]
 
-            amount_collateral_from_swap = quote[0]
-            return amount_collateral_from_swap < liquidated_collateral_amount
-        else:
-            return False
+        amount_collateral_from_swap = quote[0]
+        return amount_collateral_from_swap < liquidated_collateral_amount
 
     def update(self, rng: np.random.Generator, env):
         current_balance_collateral_asset = self.mintable_erc20_abi.balanceOf.call(

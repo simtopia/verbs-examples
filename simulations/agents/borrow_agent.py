@@ -52,7 +52,7 @@ class BorrowAgent:
                 supply_tx = self.pool_implementation_abi.supply.transaction(
                     self.address,
                     self.pool_address,
-                    [self.token_a_address, 10**25, self.address, 0],
+                    [self.token_a_address, 10**18, self.address, 0],
                 )
                 self.has_supplied = True
                 return [supply_tx]
@@ -68,7 +68,7 @@ class BorrowAgent:
                     env, self.address, self.oracle_address, [self.token_b_address]
                 )[0][0]
                 coef = 10 ** (self.decimals_token_b - 4)
-                u = rng.integers(low=9000, high=10000)
+                u = rng.integers(low=7000, high=9500)
                 available_borrow = int(
                     coef * available_borrow_base * u / borrow_asset_price
                 )
