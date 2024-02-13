@@ -18,7 +18,8 @@ from pathlib import Path
 import verbs
 
 from simulations import abi
-from simulations.agents.uniswap_agent import UniswapAgent
+from simulations.agents.uniswap_agent import DummyUniswapAgent, UniswapAgent
+from simulations.utils.erc20 import mint_and_approve_dai, mint_and_approve_weth
 
 PATH = Path(__file__).parent
 
@@ -29,14 +30,17 @@ UNISWAP_V3_FACTORY = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
 # sanity check, obtained from the factory contract using web3.py
 UNISWAP_WETH_DAI = "0xC2e9F25Be6257c210d7Adf0D4Cd6E3E881ba25f8"
 SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+UNISWAP_QUOTER = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e"
 
 
-def runner(env, seed: int, n_steps: int):
+def runner(env, seed: int, n_steps: int, cache_simulation: bool = False):
 
     # Convert addresses
     weth_address = verbs.utils.hex_to_bytes(WETH)
     dai_address = verbs.utils.hex_to_bytes(DAI)
     swap_router_address = verbs.utils.hex_to_bytes(SWAP_ROUTER)
+    quoter_address = verbs.utils.hex_to_bytes(UNISWAP_QUOTER)
+    dai_admin_address = verbs.utils.hex_to_bytes(DAI_ADMIN)
 
     # Example: Use uniswap_factory contract to get the address of WETH-DAI
     # pool with fee 3000
@@ -69,43 +73,53 @@ def runner(env, seed: int, n_steps: int):
         token_b_address=dai_address,
         uniswap_pool_abi=abi.uniswap_pool,
         uniswap_pool_address=pool_address,
+        quoter_abi=abi.quoter,
+        quoter_address=quoter_address,
     )
 
     # mint and approve tokens for the Uniswap agent
     # - Mint DAI and WETH
     # - Approve the Swap Router to use these in their transactions
-    abi.weth_erc20.deposit.execute(
-        address=weth_address,
-        args=[],
+    mint_and_approve_weth(
         env=env,
-        sender=agent.address,
-        value=int(1e24),
+        weth_abi=abi.weth_erc20,
+        weth_address=weth_address,
+        recipient=agent.address,
+        contract_approved_address=swap_router_address,
+        amount=int(1e24),
     )
-
-    abi.weth_erc20.approve.execute(
-        sender=agent.address,
-        address=weth_address,
+    mint_and_approve_dai(
         env=env,
-        args=[swap_router_address, int(1e24)],
+        dai_abi=abi.dai,
+        dai_address=dai_address,
+        contract_approved_address=swap_router_address,
+        dai_admin_address=dai_admin_address,
+        recipient=agent.address,
+        amount=int(1e30),
     )
-
-    abi.dai.mint.execute(
-        address=dai_address,
-        sender=verbs.utils.hex_to_bytes(DAI_ADMIN),
-        env=env,
-        args=[agent.address, int(1e30)],
-    )
-
-    abi.dai.approve.execute(
-        sender=agent.address,
-        address=dai_address,
-        env=env,
-        args=[swap_router_address, int(1e30)],
-    )
+    if cache_simulation:
+        dummy_agent = DummyUniswapAgent(
+            env=env,
+            fee=fee,
+            i=20,  # idx of agent
+            swap_router_abi=abi.swap_router,
+            swap_router_address=swap_router_address,
+            token_a_address=weth_address,
+            token_b_address=dai_address,
+            uniswap_pool_abi=abi.uniswap_pool,
+            uniswap_pool_address=pool_address,
+            quoter_abi=abi.quoter,
+            quoter_address=quoter_address,
+            sim_n_steps=n_steps,
+            n_ticks=100,
+        )
 
     # run simulation
     # - The Uniswap Agent records the price of the external market,
     #   and the price of Uniswap.
+    agents = [agent]
+    if cache_simulation:
+        agents.append(dummy_agent)
     runner = verbs.sim.Sim(seed, env, [agent])
     results = runner.run(n_steps=n_steps)
 
@@ -121,9 +135,13 @@ def init_cache(key: str, block_number: int, seed: int, n_steps: int):
         block_number,
     )
 
-    env, _ = runner(env, seed, n_steps)
+    env, _ = runner(env, seed, n_steps, cache_simulation=True)
 
-    return env.export_cache()
+    cache = env.export_cache()
+    with open(f"{PATH}/cache.json", "w") as f:
+        json.dump(verbs.utils.cache_to_json(cache), f)
+
+    return cache
 
 
 def run_from_cache(seed: int, n_steps: int):
