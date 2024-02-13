@@ -150,6 +150,8 @@ class BaseUniswapAgent:
 
         change_sqrt_price_x96 = sqrt_target_price_x96 - sqrt_price_uniswap_x96
         change_token_1 = int(liquidity * change_sqrt_price_x96 / 2**96)
+        if change_token_1 == 0:
+            return None
 
         def _quote_price(change_token_1):
             quote = self.quoter_abi.quoteExactInputSingle.call(
@@ -170,6 +172,9 @@ class BaseUniswapAgent:
             return quoted_price
 
         if exact:
+            # calculate the exact trade to match prices
+            # this calculation will take into account
+            # different liquidities in different tick ranges
             try:
                 sol = root_scalar(
                     lambda x: _quote_price(x) - sqrt_target_price_x96,
@@ -181,26 +186,23 @@ class BaseUniswapAgent:
             except eth_abi.exceptions.ValueOutOfBounds:
                 return None
 
-        if change_token_1 > 0:
-            swap = self.swap_router_abi.exactInputSingle.transaction(
-                self.address,
-                self.swap_router_address,
-                [
-                    (
-                        self.token1_address,
-                        self.token0_address,
-                        self.fee,
-                        self.address,
-                        10**32,
-                        int(change_token_1),
-                        0,
-                        0,
-                    )
-                ],
-            )
-            return swap
-        else:
-            return None
+        swap = self.swap_router_abi.exactInputSingle.transaction(
+            self.address,
+            self.swap_router_address,
+            [
+                (
+                    self.token1_address,
+                    self.token0_address,
+                    self.fee,
+                    self.address,
+                    10**32,
+                    int(change_token_1),
+                    0,
+                    0,
+                )
+            ],
+        )
+        return swap
 
     def get_swap_size_to_decrease_uniswap_price(
         self,
@@ -221,6 +223,8 @@ class BaseUniswapAgent:
 
         change_sqrt_price_x96 = sqrt_price_uniswap_x96 - sqrt_target_price_x96
         change_token_1 = int(liquidity * change_sqrt_price_x96 / 2**96)
+        if change_token_1 == 0:
+            return None
 
         def _quote_price(change_token_1):
             quote = self.quoter_abi.quoteExactOutputSingle.call(
@@ -241,6 +245,9 @@ class BaseUniswapAgent:
             return quoted_price
 
         if exact:
+            # calculate the exact trade to match prices
+            # this calculation will take into account
+            # different liquidities in different tick ranges
             try:
                 sol = root_scalar(
                     lambda x: _quote_price(x) - sqrt_target_price_x96,
@@ -252,26 +259,23 @@ class BaseUniswapAgent:
             except eth_abi.exceptions.ValueOutOfBounds:
                 return None
 
-        if change_token_1 > 0:
-            swap = self.swap_router_abi.exactOutputSingle.transaction(
-                self.address,
-                self.swap_router_address,
-                [
-                    (
-                        self.token0_address,
-                        self.token1_address,
-                        self.fee,
-                        self.address,
-                        10**32,
-                        int(change_token_1),
-                        10**32,
-                        0,
-                    )
-                ],
-            )
-            return swap
-        else:
-            return None
+        swap = self.swap_router_abi.exactOutputSingle.transaction(
+            self.address,
+            self.swap_router_address,
+            [
+                (
+                    self.token0_address,
+                    self.token1_address,
+                    self.fee,
+                    self.address,
+                    10**32,
+                    int(change_token_1),
+                    10**32,
+                    0,
+                )
+            ],
+        )
+        return swap
 
 
 class UniswapAgent(BaseUniswapAgent):
