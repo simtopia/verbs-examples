@@ -65,6 +65,7 @@ class LiquidationAgent:
         Makes the accountability of a liquidation and returns a boolean indicating
         whether the liquidation is profitable or not
         """
+
         try:
             liquidation_call_event = self.pool_implementation_abi.liquidationCall.call(
                 env,
@@ -78,7 +79,7 @@ class LiquidationAgent:
                     True,
                 ],
             )[1]
-        except:
+        except:  # noqa: E722
             return False
 
         decoded_liquidation_call_event = (
