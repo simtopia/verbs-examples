@@ -1,6 +1,7 @@
 import math
 import typing
 
+import eth_abi
 import numpy as np
 import verbs
 from scipy.optimize import root_scalar
@@ -169,13 +170,16 @@ class BaseUniswapAgent:
             return quoted_price
 
         if exact:
-            sol = root_scalar(
-                lambda x: _quote_price(x) - sqrt_target_price_x96,
-                x0=change_token_1,
-                method="newton",
-                maxiter=5,
-            )
-            change_token_1 = sol.root
+            try:
+                sol = root_scalar(
+                    lambda x: _quote_price(x) - sqrt_target_price_x96,
+                    x0=change_token_1,
+                    method="newton",
+                    maxiter=5,
+                )
+                change_token_1 = sol.root
+            except eth_abi.exceptions.ValueOutOfBounds:
+                return None
 
         if change_token_1 > 0:
             swap = self.swap_router_abi.exactInputSingle.transaction(
@@ -237,13 +241,16 @@ class BaseUniswapAgent:
             return quoted_price
 
         if exact:
-            sol = root_scalar(
-                lambda x: _quote_price(x) - sqrt_target_price_x96,
-                method="newton",
-                x0=change_token_1,
-                maxiter=5,
-            )
-            change_token_1 = sol.root
+            try:
+                sol = root_scalar(
+                    lambda x: _quote_price(x) - sqrt_target_price_x96,
+                    method="newton",
+                    x0=change_token_1,
+                    maxiter=5,
+                )
+                change_token_1 = sol.root
+            except eth_abi.exceptions.ValueOutOfBounds:
+                return None
 
         if change_token_1 > 0:
             swap = self.swap_router_abi.exactOutputSingle.transaction(
@@ -470,6 +477,7 @@ class DummyUniswapAgent(UniswapAgent):
             sigma=0.5,
             dt=dt,
         )
+        self.sim_n_steps = 100
 
     def update(self, rng: np.random.Generator, env):
         """
