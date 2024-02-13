@@ -33,7 +33,9 @@ SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 UNISWAP_QUOTER = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e"
 
 
-def runner(env, seed: int, n_steps: int, cache_simulation: bool = False):
+def runner(env, seed: int, n_steps: int, init_cache: bool = False):
+
+    uniswap_agent_type = DummyUniswapAgent if init_cache else UniswapAgent
 
     # Convert addresses
     weth_address = verbs.utils.hex_to_bytes(WETH)
@@ -60,7 +62,7 @@ def runner(env, seed: int, n_steps: int, cache_simulation: bool = False):
     # ------------------------
     # Initialize Uniswap agent
     # ------------------------
-    agent = UniswapAgent(
+    agent = uniswap_agent_type(
         env=env,
         dt=0.01,
         fee=fee,
@@ -76,6 +78,8 @@ def runner(env, seed: int, n_steps: int, cache_simulation: bool = False):
         quoter_abi=abi.quoter,
         quoter_address=quoter_address,
     )
+    if init_cache:
+        setattr(agent, "sim_n_steps", n_steps)
 
     # mint and approve tokens for the Uniswap agent
     # - Mint DAI and WETH
@@ -97,30 +101,12 @@ def runner(env, seed: int, n_steps: int, cache_simulation: bool = False):
         recipient=agent.address,
         amount=int(1e30),
     )
-    if cache_simulation:
-        dummy_agent = DummyUniswapAgent(
-            env=env,
-            fee=fee,
-            i=20,  # idx of agent
-            swap_router_abi=abi.swap_router,
-            swap_router_address=swap_router_address,
-            token_a_address=weth_address,
-            token_b_address=dai_address,
-            uniswap_pool_abi=abi.uniswap_pool,
-            uniswap_pool_address=pool_address,
-            quoter_abi=abi.quoter,
-            quoter_address=quoter_address,
-            sim_n_steps=n_steps,
-            n_ticks=100,
-        )
 
     # run simulation
     # - The Uniswap Agent records the price of the external market,
     #   and the price of Uniswap.
     agents = [agent]
-    if cache_simulation:
-        agents.append(dummy_agent)
-    runner = verbs.sim.Sim(seed, env, [agent])
+    runner = verbs.sim.Sim(seed, env, agents)
     results = runner.run(n_steps=n_steps)
 
     return env, results
@@ -135,7 +121,7 @@ def init_cache(key: str, block_number: int, seed: int, n_steps: int):
         block_number,
     )
 
-    env, _ = runner(env, seed, n_steps, cache_simulation=True)
+    env, _ = runner(env, seed, n_steps, init_cache=True)
 
     cache = env.export_cache()
     with open(f"{PATH}/cache.json", "w") as f:

@@ -135,6 +135,7 @@ class BaseUniswapAgent:
         sqrt_target_price_x96: int,
         sqrt_price_uniswap_x96: int,
         liquidity: int,
+        exact: bool = True,
     ):
         """
         Gets the swap parameters so that, after the swap, the price in Uniswap
@@ -167,13 +168,14 @@ class BaseUniswapAgent:
             quoted_price = quote[1]
             return quoted_price
 
-        sol = root_scalar(
-            lambda x: _quote_price(x) - sqrt_target_price_x96,
-            x0=change_token_1,
-            method="newton",
-            maxiter=10,
-        )
-        change_token_1 = sol.root
+        if exact:
+            sol = root_scalar(
+                lambda x: _quote_price(x) - sqrt_target_price_x96,
+                x0=change_token_1,
+                method="newton",
+                maxiter=5,
+            )
+            change_token_1 = sol.root
 
         if change_token_1 > 0:
             swap = self.swap_router_abi.exactInputSingle.transaction(
@@ -202,6 +204,7 @@ class BaseUniswapAgent:
         sqrt_target_price_x96: int,
         sqrt_price_uniswap_x96: int,
         liquidity: int,
+        exact: bool = True,
     ):
         """
         Gets the swap parameters so that, after the swap, the price in
@@ -233,13 +236,14 @@ class BaseUniswapAgent:
             quoted_price = quote[1]
             return quoted_price
 
-        sol = root_scalar(
-            lambda x: _quote_price(x) - sqrt_target_price_x96,
-            method="newton",
-            x0=change_token_1,
-            maxiter=10,
-        )
-        change_token_1 = sol.root
+        if exact:
+            sol = root_scalar(
+                lambda x: _quote_price(x) - sqrt_target_price_x96,
+                method="newton",
+                x0=change_token_1,
+                maxiter=5,
+            )
+            change_token_1 = sol.root
 
         if change_token_1 > 0:
             swap = self.swap_router_abi.exactOutputSingle.transaction(
@@ -422,7 +426,7 @@ class UniswapAgent(BaseUniswapAgent):
         return token_a_price_uniswap - token_a_price_external
 
 
-class DummyUniswapAgent(BaseUniswapAgent):
+class DummyUniswapAgent(UniswapAgent):
     """
     Dummy Uniswap agent that queries the EVM database
     for a wide range of Uniswap ticks.
@@ -444,9 +448,12 @@ class DummyUniswapAgent(BaseUniswapAgent):
         token_a_address: bytes,
         # token B is considered to be less risky / stablecoin
         token_b_address: bytes,
-        n_ticks: int,
-        sim_n_steps: int,
+        mu: float,
+        sigma: float,
+        dt: float,
     ):
+        # calibrate mu and sigma in order to explore Uniswap pool
+        # storage values for simulation
         super().__init__(
             env=env,
             i=i,
@@ -459,62 +466,17 @@ class DummyUniswapAgent(BaseUniswapAgent):
             fee=fee,
             token_a_address=token_a_address,
             token_b_address=token_b_address,
+            mu=0.3,
+            sigma=0.5,
+            dt=dt,
         )
-
-        # target price for the Dummy agent
-        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap(env)
-        init_tick = tick_from_price(sqrt_price_uniswap_x96, fee)
-        self.sqrt_upper_price_x96 = price_from_tick(
-            init_tick + n_ticks * TICK_SPACING[fee]
-        )
-        self.sqrt_lower_price_x96 = price_from_tick(
-            init_tick - n_ticks * TICK_SPACING[fee]
-        )
-
-        # simulation vars
-        self.sim_n_steps = sim_n_steps
-        self.step = 0
 
     def update(self, rng: np.random.Generator, env):
-        # get sqrt price from uniswap pool. Uniswap returns price of
-        # token0 in terms of token1
-        self.step += 1
-        tx = []
-        if self.step == self.sim_n_steps - 1:
-            sqrt_target_price_x96 = self.sqrt_lower_price_x96
-        elif self.step == self.sim_n_steps:
-            sqrt_target_price_x96 = self.sqrt_upper_price_x96
-        else:
-            # this agent only submits transactions in the last
-            # two steps of the simulation
-            return tx
-
-        # get sqrt price from uniswap pool. Uniswap returns price of
-        # token0 in terms of token1
-        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap(env)
-
-        # get liquidity from uniswap pool
-        liquidity = self.uniswap_pool_abi.liquidity.call(
-            env, self.address, self.uniswap_pool_address, []
-        )[0][0]
-
-        if sqrt_target_price_x96 > sqrt_price_uniswap_x96:
-            swap_call = self.get_swap_size_to_increase_uniswap_price(
-                env=env,
-                sqrt_target_price_x96=sqrt_target_price_x96,
-                sqrt_price_uniswap_x96=sqrt_price_uniswap_x96,
-                liquidity=liquidity,
-            )
-            tx.append(swap_call)
-        else:
-            swap_call = self.get_swap_size_to_decrease_uniswap_price(
-                env=env,
-                sqrt_target_price_x96=sqrt_target_price_x96,
-                sqrt_price_uniswap_x96=sqrt_price_uniswap_x96,
-                liquidity=liquidity,
-            )
-            tx.append(swap_call)
+        """
+        Makes an exploratory update by manually changing
+        the drift of the external market
+        """
+        tx = super().update(rng, env)
+        if self.step in [self.sim_n_steps // 4, 3 * self.sim_n_steps // 4]:
+            self.external_market.mu = -self.external_market.mu
         return tx
-
-    def record(self, env):
-        return 0
