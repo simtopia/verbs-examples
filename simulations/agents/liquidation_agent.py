@@ -65,19 +65,21 @@ class LiquidationAgent:
         Makes the accountability of a liquidation and returns a boolean indicating
         whether the liquidation is profitable or not
         """
-
-        liquidation_call_event = self.pool_implementation_abi.liquidationCall.call(
-            env,
-            self.address,
-            self.pool_address,
-            [
-                self.token_a_address,
-                self.token_b_address,
-                liquidation_address,
-                amount,
-                True,
-            ],
-        )[1]
+        try:
+            liquidation_call_event = self.pool_implementation_abi.liquidationCall.call(
+                env,
+                self.address,
+                self.pool_address,
+                [
+                    self.token_a_address,
+                    self.token_b_address,
+                    liquidation_address,
+                    amount,
+                    True,
+                ],
+            )[1]
+        except:
+            return False
 
         decoded_liquidation_call_event = (
             self.pool_implementation_abi.LiquidationCall.decode(

@@ -1,5 +1,36 @@
+import math
+import typing
+
 import numpy as np
 import verbs
+from scipy.optimize import root_scalar
+
+TICK_SPACING = {100: 1, 500: 10, 3000: 60, 10000: 200}
+
+
+def tick_from_price(sqrt_price_x96: int, uniswap_fee: int) -> typing.Tuple[int, int]:
+    """
+    Parameters
+    ----------
+    sqrt_price_x96: int
+        Square root of price times 2**96
+    uniswap_fee: int
+        Uniswap fee. Possible values [100,500,3000,10000]
+
+    Returns
+    -------
+    tick_lower: int
+        Lower tick of input price
+    """
+    price = (sqrt_price_x96 / 2**96) ** 2
+    tick = math.floor(math.log(price, 1.001))
+    tick_lower = tick - (tick % TICK_SPACING[uniswap_fee])
+    return tick_lower
+
+
+def price_from_tick(tick: int) -> int:
+    sqrt_price_x96 = np.sqrt(1.001**tick) * 2**96
+    return sqrt_price_x96
 
 
 class Gbm:
@@ -60,9 +91,11 @@ class UniswapAgent:
         i: int,
         swap_router_abi,
         uniswap_pool_abi,
+        quoter_abi,
         fee: int,
         swap_router_address: bytes,
         uniswap_pool_address: bytes,
+        quoter_address: bytes,
         # token A is considered to be the risky asset
         token_a_address: bytes,
         # token B is considered to be less risky / stablecoin
@@ -76,8 +109,10 @@ class UniswapAgent:
 
         self.swap_router_abi = swap_router_abi
         self.uniswap_pool_abi = uniswap_pool_abi
+        self.quoter_abi = quoter_abi
         self.swap_router_address = swap_router_address
         self.uniswap_pool_address = uniswap_pool_address
+        self.quoter_address = quoter_address
         self.uniswap_fee = fee
         self.weth_address = token_a_address
         self.dai_address = token_b_address
@@ -131,6 +166,7 @@ class UniswapAgent:
 
     def get_swap_size_to_increase_uniswap_price(
         self,
+        env,
         sqrt_price_external_market_x96: int,
         sqrt_price_uniswap_x96: int,
         liquidity: int,
@@ -144,8 +180,36 @@ class UniswapAgent:
         collateral in terms of the numeraire.
         Ref: https://atiselsts.github.io/pdfs/uniswap-v3-liquidity-math.pdf
         """
+
         change_sqrt_price_x96 = sqrt_price_external_market_x96 - sqrt_price_uniswap_x96
         change_token_1 = int(liquidity * change_sqrt_price_x96 / 2**96)
+
+        def _quote_price(change_token_1):
+            quote = self.quoter_abi.quoteExactInputSingle.call(
+                env,
+                self.address,
+                self.quoter_address,
+                [
+                    (
+                        self.token1_address,
+                        self.token0_address,
+                        int(change_token_1),
+                        self.fee,
+                        0,
+                    )
+                ],
+            )[0]
+            quoted_price = quote[1]
+            return quoted_price
+
+        sol = root_scalar(
+            lambda x: _quote_price(x) - sqrt_price_external_market_x96,
+            x0=change_token_1,
+            method="newton",
+            maxiter=10,
+        )
+        change_token_1 = sol.root
+
         if change_token_1 > 0:
             swap = self.swap_router_abi.exactInputSingle.transaction(
                 self.address,
@@ -157,7 +221,7 @@ class UniswapAgent:
                         self.fee,
                         self.address,
                         10**32,
-                        change_token_1,
+                        int(change_token_1),
                         0,
                         0,
                     )
@@ -169,6 +233,7 @@ class UniswapAgent:
 
     def get_swap_size_to_decrease_uniswap_price(
         self,
+        env,
         sqrt_price_external_market_x96: int,
         sqrt_price_uniswap_x96: int,
         liquidity: int,
@@ -181,8 +246,36 @@ class UniswapAgent:
         the numeraire (in our case the debt asset), and P is the price
         of the collateral in terms of the numeraire.
         """
+
         change_sqrt_price_x96 = sqrt_price_uniswap_x96 - sqrt_price_external_market_x96
         change_token_1 = int(liquidity * change_sqrt_price_x96 / 2**96)
+
+        def _quote_price(change_token_1):
+            quote = self.quoter_abi.quoteExactOutputSingle.call(
+                env,
+                self.address,
+                self.quoter_address,
+                [
+                    (
+                        self.token0_address,
+                        self.token1_address,
+                        int(change_token_1),
+                        self.fee,
+                        0,
+                    )
+                ],
+            )[0]
+            quoted_price = quote[1]
+            return quoted_price
+
+        sol = root_scalar(
+            lambda x: _quote_price(x) - sqrt_price_external_market_x96,
+            method="newton",
+            x0=change_token_1,
+            maxiter=10,
+        )
+        change_token_1 = sol.root
+
         if change_token_1 > 0:
             swap = self.swap_router_abi.exactOutputSingle.transaction(
                 self.address,
@@ -194,7 +287,7 @@ class UniswapAgent:
                         self.fee,
                         self.address,
                         10**32,
-                        change_token_1,
+                        int(change_token_1),
                         10**32,
                         0,
                     )
@@ -245,12 +338,14 @@ class UniswapAgent:
         # (and buy debt asset) to decrease the price of Uniswap
         if sqrt_price_external_market_x96 > sqrt_price_uniswap_x96:
             swap_call = self.get_swap_size_to_increase_uniswap_price(
+                env=env,
                 sqrt_price_external_market_x96=sqrt_price_external_market_x96,
                 sqrt_price_uniswap_x96=sqrt_price_uniswap_x96,
                 liquidity=liquidity,
             )
         else:
             swap_call = self.get_swap_size_to_decrease_uniswap_price(
+                env=env,
                 sqrt_price_external_market_x96=sqrt_price_external_market_x96,
                 sqrt_price_uniswap_x96=sqrt_price_uniswap_x96,
                 liquidity=liquidity,
@@ -293,3 +388,253 @@ class UniswapAgent:
             token_a_price_uniswap = (2**96 / sqrt_price_uniswap_x96) ** 2
         token_a_price_external = self.external_market.get_price_token_a()
         return token_a_price_uniswap - token_a_price_external
+
+
+class DummyUniswapAgent:
+    """
+    Dummy Uniswap agent that queries the EVM database
+    for a wide range of Uniswap ticks.
+    Useful to initialise the cache of a simulation
+    """
+
+    def __init__(
+        self,
+        env,
+        i: int,
+        swap_router_abi,
+        uniswap_pool_abi,
+        quoter_abi,
+        fee: int,
+        swap_router_address: bytes,
+        uniswap_pool_address: bytes,
+        quoter_address: bytes,
+        # token A is considered to be the risky asset
+        token_a_address: bytes,
+        # token B is considered to be less risky / stablecoin
+        token_b_address: bytes,
+        n_ticks: int,
+        sim_n_steps: int,
+    ):
+        self.address = verbs.utils.int_to_address(i)
+        env.create_account(self.address, int(1e25))
+
+        self.swap_router_abi = swap_router_abi
+        self.uniswap_pool_abi = uniswap_pool_abi
+        self.quoter_abi = quoter_abi
+        self.swap_router_address = swap_router_address
+        self.uniswap_pool_address = uniswap_pool_address
+        self.quoter_address = quoter_address
+        self.uniswap_fee = fee
+        self.weth_address = token_a_address
+        self.dai_address = token_b_address
+
+        self.token_b = token_b_address  # stablecoin.
+        self.token0_address = self.uniswap_pool_abi.token0.call(
+            env, self.address, self.uniswap_pool_address, []
+        )[0][0]
+        self.token1_address = self.uniswap_pool_abi.token1.call(
+            env, self.address, self.uniswap_pool_address, []
+        )[0][0]
+        self.fee = fee
+
+        # target price for the Dummy agent
+        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap(env)
+        init_tick = tick_from_price(sqrt_price_uniswap_x96, fee)
+        self.sqrt_upper_price_x96 = price_from_tick(
+            init_tick + n_ticks * TICK_SPACING[fee]
+        )
+        self.sqrt_lower_price_x96 = price_from_tick(
+            init_tick - n_ticks * TICK_SPACING[fee]
+        )
+
+        # simulation vars
+        self.sim_n_steps = sim_n_steps
+        self.step = 0
+
+    def get_sqrt_price_x96_uniswap(self, env) -> int:
+        """get sqrt price from uniswap pool.
+        Uniswap returns price of token0 in terms of token1
+        """
+
+        slot0 = self.uniswap_pool_abi.slot0.call(
+            env, self.address, self.uniswap_pool_address, []
+        )[0]
+        sqrt_price_uniswap_x96 = slot0[0]
+        return sqrt_price_uniswap_x96
+
+    def get_swap_size_to_increase_uniswap_price(
+        self,
+        env,
+        sqrt_target_price_x96: int,
+        sqrt_price_uniswap_x96: int,
+        liquidity: int,
+    ):
+        """
+        Gets the swap parameters so that, after the swap, the price in Uniswap
+        is the same as the price in the external market. We know that in
+        Uniswap v2 (or v3 if there is not a tick range change), we have
+        :math:`L = \\frac{\\Delta y}{\\Delta \\sqrt{P}}` where y is the
+        numeraire (in our case the debt asset), and P is the price of the
+        collateral in terms of the numeraire.
+        Ref: https://atiselsts.github.io/pdfs/uniswap-v3-liquidity-math.pdf
+        """
+
+        change_sqrt_price_x96 = sqrt_target_price_x96 - sqrt_price_uniswap_x96
+        change_token_1 = int(liquidity * change_sqrt_price_x96 / 2**96)
+
+        def _quote_price(change_token_1):
+            quote = self.quoter_abi.quoteExactInputSingle.call(
+                env,
+                self.address,
+                self.quoter_address,
+                [
+                    (
+                        self.token1_address,
+                        self.token0_address,
+                        int(change_token_1),
+                        self.fee,
+                        0,
+                    )
+                ],
+            )[0]
+            crossed_ticks = quote[1]
+            return crossed_ticks
+
+        sol = root_scalar(
+            lambda x: _quote_price(x) - sqrt_target_price_x96,
+            x0=change_token_1,
+            method="newton",
+            maxiter=10,
+        )
+        change_token_1 = sol.root
+
+        if change_token_1 > 0:
+            swap = self.swap_router_abi.exactInputSingle.transaction(
+                self.address,
+                self.swap_router_address,
+                [
+                    (
+                        self.token1_address,
+                        self.token0_address,
+                        self.fee,
+                        self.address,
+                        10**32,
+                        int(change_token_1),
+                        0,
+                        0,
+                    )
+                ],
+            )
+            return swap
+        else:
+            return None
+
+    def get_swap_size_to_decrease_uniswap_price(
+        self,
+        env,
+        sqrt_target_price_x96: int,
+        sqrt_price_uniswap_x96: int,
+        liquidity: int,
+    ):
+        """
+        Gets the swap parameters so that, after the swap, the price in
+        Uniswap is the same as the price in the external market. We
+        know that in Uniswap v3 (or v2), we have
+        :math:`L = \\frac{\\Delta y}{\\Delta \\sqrt{P}}` where y is
+        the numeraire (in our case the debt asset), and P is the price
+        of the collateral in terms of the numeraire.
+        """
+
+        change_sqrt_price_x96 = sqrt_price_uniswap_x96 - sqrt_target_price_x96
+        change_token_1 = int(liquidity * change_sqrt_price_x96 / 2**96)
+
+        def _quote_price(change_token_1):
+            quote = self.quoter_abi.quoteExactOutputSingle.call(
+                env,
+                self.address,
+                self.quoter_address,
+                [
+                    (
+                        self.token0_address,
+                        self.token1_address,
+                        int(change_token_1),
+                        self.fee,
+                        0,
+                    )
+                ],
+            )[0]
+            quoted_price = quote[1]
+            return quoted_price
+
+        sol = root_scalar(
+            lambda x: _quote_price(x) - sqrt_target_price_x96,
+            method="newton",
+            x0=change_token_1,
+            maxiter=10,
+        )
+        change_token_1 = sol.root
+
+        if change_token_1 > 0:
+            swap = self.swap_router_abi.exactOutputSingle.transaction(
+                self.address,
+                self.swap_router_address,
+                [
+                    (
+                        self.token0_address,
+                        self.token1_address,
+                        self.fee,
+                        self.address,
+                        10**32,
+                        int(change_token_1),
+                        10**32,
+                        0,
+                    )
+                ],
+            )
+            return swap
+        else:
+            return None
+
+    def update(self, rng: np.random.Generator, env):
+        # get sqrt price from uniswap pool. Uniswap returns price of
+        # token0 in terms of token1
+        self.step += 1
+        tx = []
+        if self.step == self.sim_n_steps - 1:
+            sqrt_target_price_x96 = self.sqrt_lower_price_x96
+        elif self.step == self.sim_n_steps:
+            sqrt_target_price_x96 = self.sqrt_upper_price_x96
+        else:
+            # this agent only submits transactions in the last
+            # two steps of the simulation
+            return tx
+
+        # get sqrt price from uniswap pool. Uniswap returns price of
+        # token0 in terms of token1
+        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap(env)
+
+        # get liquidity from uniswap pool
+        liquidity = self.uniswap_pool_abi.liquidity.call(
+            env, self.address, self.uniswap_pool_address, []
+        )[0][0]
+
+        if sqrt_target_price_x96 > sqrt_price_uniswap_x96:
+            swap_call = self.get_swap_size_to_increase_uniswap_price(
+                env=env,
+                sqrt_target_price_x96=sqrt_target_price_x96,
+                sqrt_price_uniswap_x96=sqrt_price_uniswap_x96,
+                liquidity=liquidity,
+            )
+            tx.append(swap_call)
+        else:
+            swap_call = self.get_swap_size_to_decrease_uniswap_price(
+                env=env,
+                sqrt_target_price_x96=sqrt_target_price_x96,
+                sqrt_price_uniswap_x96=sqrt_price_uniswap_x96,
+                liquidity=liquidity,
+            )
+            tx.append(swap_call)
+        return tx
+
+    def record(self, env):
+        return 0

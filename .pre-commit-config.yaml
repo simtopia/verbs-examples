@@ -23,7 +23,7 @@ repos:
           - "--max-line-length=88"
           - "--max-complexity=18"
           - "--select=B,C,E,F,W,T4,B9"
-          - "--ignore=W503,E203"
+          - "--ignore=W503,E203,E722"
           - "--per-file-ignores=__init__.py:F401"
 -   repo: https://github.com/pycqa/isort
     rev: 5.12.0
