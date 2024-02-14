@@ -26,3 +26,8 @@ jobs:
       - run: hatch run examples:uniswap --seed 303
       - run: hatch run examples:uniswap --seed 404
       - run: hatch run examples:uniswap --seed 505
+      - run: hatch run examples:aave --seed 606
+      - run: hatch run examples:aave --seed 707
+      - run: hatch run examples:aave --seed 808
+      - run: hatch run examples:aave --seed 909
+      - run: hatch run examples:aave --seed 1010

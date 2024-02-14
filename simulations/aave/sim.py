@@ -40,6 +40,7 @@ Reference: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
 """
 
 import json
+from functools import partial
 from pathlib import Path
 
 import verbs
@@ -47,7 +48,8 @@ import verbs
 from simulations import abi
 from simulations.agents.borrow_agent import BorrowAgent
 from simulations.agents.liquidation_agent import LiquidationAgent
-from simulations.agents.uniswap_agent import UniswapAgent
+from simulations.agents.uniswap_agent import DummyUniswapAgent, UniswapAgent
+from simulations.utils.erc20 import mint_and_approve_dai, mint_and_approve_weth
 
 PATH = Path(__file__).parent
 
@@ -67,7 +69,18 @@ AAVE_ADDRESS_PROVIDER = "0x2f39d218133AFaB8F2B819B1066c7E434Ad94E9e"
 AAVE_ACL_MANAGER = "0xc2aaCf6553D20d1e9d78E365AAba8032af9c85b0"
 
 
-def runner(env, seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
+def runner(
+    env,
+    seed: int,
+    n_steps: int,
+    n_borrow_agents: int,
+    sigma: float,
+    init_cache: bool = False,
+):
+
+    uniswap_agent_type = (
+        partial(DummyUniswapAgent, sim_n_steps=n_steps) if init_cache else UniswapAgent
+    )
 
     # Use uniswap_factory contract to get the address of WETH-DAI pool
     fee = 3000
@@ -87,6 +100,7 @@ def runner(env, seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
     dai_address = verbs.utils.hex_to_bytes(DAI)
     dai_admin_address = verbs.utils.hex_to_bytes(DAI_ADMIN)
     swap_router_address = verbs.utils.hex_to_bytes(SWAP_ROUTER)
+    quoter_address = verbs.utils.hex_to_bytes(UNISWAP_QUOTER)
     aave_pool_address = verbs.utils.hex_to_bytes(AAVE_POOL)
     uniswap_weth_dai = verbs.utils.hex_to_bytes(UNISWAP_WETH_DAI)
     aave_pool_address = verbs.utils.hex_to_bytes(AAVE_POOL)
@@ -97,7 +111,7 @@ def runner(env, seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
     # -------------------------
     # Initialize Uniswap agent
     # -------------------------
-    uniswap_agent = UniswapAgent(
+    uniswap_agent = uniswap_agent_type(
         env=env,
         dt=0.01,
         fee=fee,
@@ -106,6 +120,8 @@ def runner(env, seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
         sigma=sigma,
         swap_router_abi=abi.swap_router,
         swap_router_address=swap_router_address,
+        quoter_abi=abi.quoter,
+        quoter_address=quoter_address,
         token_a_address=weth_address,
         token_b_address=dai_address,
         uniswap_pool_abi=abi.uniswap_pool,
@@ -113,38 +129,27 @@ def runner(env, seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
     )
 
     # Mint and approve tokens
-    abi.weth_erc20.deposit.execute(
-        address=weth_address,
-        args=[],
+    mint_and_approve_weth(
         env=env,
-        sender=uniswap_agent.address,
-        value=int(1e24),
+        weth_abi=abi.weth_erc20,
+        weth_address=weth_address,
+        recipient=uniswap_agent.address,
+        contract_approved_address=swap_router_address,
+        amount=int(1e24),
+    )
+    mint_and_approve_dai(
+        env=env,
+        dai_abi=abi.dai,
+        dai_address=dai_address,
+        contract_approved_address=swap_router_address,
+        dai_admin_address=dai_admin_address,
+        recipient=uniswap_agent.address,
+        amount=int(1e30),
     )
 
-    abi.weth_erc20.approve.execute(
-        sender=uniswap_agent.address,
-        address=weth_address,
-        env=env,
-        args=[swap_router_address, int(1e24)],
-    )
-
-    abi.dai.mint.execute(
-        address=dai_address,
-        sender=dai_admin_address,
-        env=env,
-        args=[uniswap_agent.address, int(1e30)],
-    )
-
-    abi.dai.approve.execute(
-        sender=uniswap_agent.address,
-        address=dai_address,
-        env=env,
-        args=[swap_router_address, int(1e30)],
-    )
-
-    ##############################
+    # -------------------------
     # Initialise borrow agents
-    ##############################
+    # -------------------------
     borrow_agents = [
         BorrowAgent(
             env=env,
@@ -163,24 +168,18 @@ def runner(env, seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
 
     # Mint WETH and approve WETH
     for borrow_agent in borrow_agents:
-        abi.weth_erc20.deposit.execute(
-            address=weth_address,
-            args=[],
+        mint_and_approve_weth(
             env=env,
-            sender=borrow_agent.address,
-            value=int(1e24),
+            weth_abi=abi.weth_erc20,
+            weth_address=weth_address,
+            recipient=borrow_agent.address,
+            contract_approved_address=aave_pool_address,
+            amount=int(1e24),
         )
 
-        abi.weth_erc20.approve.execute(
-            sender=borrow_agent.address,
-            address=weth_address,
-            env=env,
-            args=[aave_pool_address, int(1e24)],
-        )
-
-    ################################
+    # -----------------------------
     # Initialise liquidation agent
-    ################################
+    # -----------------------------
     liquidation_agent = LiquidationAgent(
         env=env,
         i=1000,
@@ -199,33 +198,22 @@ def runner(env, seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
         uniswap_fee=fee,
     )
 
-    abi.weth_erc20.deposit.execute(
-        address=weth_address,
-        args=[],
+    mint_and_approve_weth(
         env=env,
-        sender=liquidation_agent.address,
-        value=int(1e30),
+        weth_abi=abi.weth_erc20,
+        weth_address=weth_address,
+        recipient=liquidation_agent.address,
+        contract_approved_address=swap_router_address,
+        amount=int(1e30),
     )
-
-    abi.weth_erc20.approve.execute(
-        sender=liquidation_agent.address,
-        address=weth_address,
+    mint_and_approve_dai(
         env=env,
-        args=[swap_router_address, int(1e30)],
-    )
-
-    abi.dai.mint.execute(
-        address=dai_address,
-        sender=dai_admin_address,
-        env=env,
-        args=[liquidation_agent.address, int(1e35)],
-    )
-
-    abi.dai.approve.execute(
-        sender=liquidation_agent.address,
-        address=dai_address,
-        env=env,
-        args=[aave_pool_address, int(1e35)],
+        dai_abi=abi.dai,
+        dai_address=dai_address,
+        contract_approved_address=aave_pool_address,
+        dai_admin_address=dai_admin_address,
+        recipient=liquidation_agent.address,
+        amount=int(1e35),
     )
 
     # ----------------------------------------------
@@ -290,6 +278,7 @@ def runner(env, seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
 
     # Run simulation
     agents = [uniswap_agent] + borrow_agents + [liquidation_agent]
+
     runner = verbs.sim.Sim(seed, env, agents)
     results = runner.run(n_steps=n_steps)
 
@@ -312,9 +301,12 @@ def init_cache(
         block_number,
     )
 
-    env, _ = runner(env, seed, n_steps, n_borrow_agents, sigma)
+    env, _ = runner(env, seed, n_steps, n_borrow_agents, sigma, init_cache=True)
+    cache = env.export_cache()
+    with open(f"{PATH}/cache.json", "w") as f:
+        json.dump(verbs.utils.cache_to_json(cache), f)
 
-    return env.export_cache()
+    return cache
 
 
 def run_from_cache(seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
