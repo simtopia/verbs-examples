@@ -13,6 +13,7 @@ to make a profit.
 """
 
 import json
+from functools import partial
 from pathlib import Path
 
 import verbs
@@ -35,7 +36,9 @@ UNISWAP_QUOTER = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e"
 
 def runner(env, seed: int, n_steps: int, init_cache: bool = False):
 
-    uniswap_agent_type = DummyUniswapAgent if init_cache else UniswapAgent
+    uniswap_agent_type = (
+        partial(DummyUniswapAgent, sim_n_steps=n_steps) if init_cache else UniswapAgent
+    )
 
     # Convert addresses
     weth_address = verbs.utils.hex_to_bytes(WETH)
@@ -78,8 +81,6 @@ def runner(env, seed: int, n_steps: int, init_cache: bool = False):
         quoter_abi=abi.quoter,
         quoter_address=quoter_address,
     )
-    if init_cache:
-        setattr(agent, "sim_n_steps", n_steps)
 
     # mint and approve tokens for the Uniswap agent
     # - Mint DAI and WETH

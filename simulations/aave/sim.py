@@ -40,6 +40,7 @@ Reference: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
 """
 
 import json
+from functools import partial
 from pathlib import Path
 
 import verbs
@@ -77,7 +78,9 @@ def runner(
     init_cache: bool = False,
 ):
 
-    uniswap_agent_type = DummyUniswapAgent if init_cache else UniswapAgent
+    uniswap_agent_type = (
+        partial(DummyUniswapAgent, sim_n_steps=n_steps) if init_cache else UniswapAgent
+    )
 
     # Use uniswap_factory contract to get the address of WETH-DAI pool
     fee = 3000
@@ -124,8 +127,6 @@ def runner(
         uniswap_pool_abi=abi.uniswap_pool,
         uniswap_pool_address=uniswap_weth_dai,
     )
-    if init_cache:
-        setattr(uniswap_agent, "sim_n_steps", n_steps)
 
     # Mint and approve tokens
     mint_and_approve_weth(
@@ -300,7 +301,7 @@ def init_cache(
         block_number,
     )
 
-    env, _ = runner(env, seed, n_steps, n_borrow_agents, sigma)
+    env, _ = runner(env, seed, n_steps, n_borrow_agents, sigma, init_cache=True)
     cache = env.export_cache()
     with open(f"{PATH}/cache.json", "w") as f:
         json.dump(verbs.utils.cache_to_json(cache), f)

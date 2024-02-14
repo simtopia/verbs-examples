@@ -462,6 +462,7 @@ class DummyUniswapAgent(UniswapAgent):
         mu: float,
         sigma: float,
         dt: float,
+        sim_n_steps: int,
     ):
         # calibrate mu and sigma in order to explore Uniswap pool
         # storage values for simulation
@@ -478,10 +479,10 @@ class DummyUniswapAgent(UniswapAgent):
             token_a_address=token_a_address,
             token_b_address=token_b_address,
             mu=0.3,
-            sigma=0.5,
+            sigma=0.6,
             dt=dt,
         )
-        self.sim_n_steps = 100
+        self.sim_n_steps = sim_n_steps
 
     def update(self, rng: np.random.Generator, env):
         """
