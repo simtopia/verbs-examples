@@ -3,7 +3,7 @@ requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = []
+packages = ["simulations"]
 
 [project]
 name = "verbs-examples"
@@ -32,8 +32,9 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "verbs == 0.1.1",
-  "matplotlib"
+  "verbs == 0.2.0",
+  "matplotlib",
+  "scipy"
 ]
 
 [tool.hatch.metadata]
@@ -48,5 +49,5 @@ dependencies = [
 lint = "pre-commit install && pre-commit run --all-files"
 
 [tool.hatch.envs.examples.scripts]
-uniswap = "python sim_uniswap_gbm.py {args}"
-aave = "python sim_aave_uniswap.py {args}"
+uniswap = "python uniswap_example.py {args}"
+aave = "python aave_example.py {args}"

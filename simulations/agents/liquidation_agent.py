@@ -66,48 +66,48 @@ class LiquidationAgent:
         whether the liquidation is profitable or not
         """
 
-        liquidation_call_event = self.pool_implementation_abi.liquidationCall.call(
-            env,
-            self.address,
-            self.pool_address,
-            [
-                self.token_a_address,
-                self.token_b_address,
-                liquidation_address,
-                amount,
-                True,
-            ],
-        )[1]
-
-        if liquidation_call_event:
-            decoded_liquidation_call_event = (
-                self.pool_implementation_abi.LiquidationCall.decode(
-                    liquidation_call_event[-1][1]
-                )
-            )
-
-            debt_to_cover = decoded_liquidation_call_event[0]
-            liquidated_collateral_amount = decoded_liquidation_call_event[1]
-
-            quote = self.quoter_abi.quoteExactOutputSingle.call(
+        try:
+            liquidation_call_event = self.pool_implementation_abi.liquidationCall.call(
                 env,
                 self.address,
-                self.quoter_address,
+                self.pool_address,
                 [
-                    (
-                        self.token_a_address,
-                        self.token_b_address,
-                        debt_to_cover,
-                        self.uniswap_fee,
-                        0,
-                    )
+                    self.token_a_address,
+                    self.token_b_address,
+                    liquidation_address,
+                    amount,
+                    True,
                 ],
-            )[0]
-
-            amount_collateral_from_swap = quote[0]
-            return amount_collateral_from_swap < liquidated_collateral_amount
-        else:
+            )[1]
+        except:  # noqa: E722
             return False
+
+        decoded_liquidation_call_event = (
+            self.pool_implementation_abi.LiquidationCall.decode(
+                liquidation_call_event[-1][1]
+            )
+        )
+
+        debt_to_cover = decoded_liquidation_call_event[0]
+        liquidated_collateral_amount = decoded_liquidation_call_event[1]
+
+        quote = self.quoter_abi.quoteExactOutputSingle.call(
+            env,
+            self.address,
+            self.quoter_address,
+            [
+                (
+                    self.token_a_address,
+                    self.token_b_address,
+                    debt_to_cover,
+                    self.uniswap_fee,
+                    0,
+                )
+            ],
+        )[0]
+
+        amount_collateral_from_swap = quote[0]
+        return amount_collateral_from_swap < liquidated_collateral_amount
 
     def update(self, rng: np.random.Generator, env):
         current_balance_collateral_asset = self.mintable_erc20_abi.balanceOf.call(
@@ -138,7 +138,7 @@ class LiquidationAgent:
         # filter risky positions
         risky_positions = filter(lambda x: x[1][5] < 10**18, users_data)
 
-        # filter thoses positions for which liquidating is profitable
+        # filter those positions for which liquidating is profitable
         # Note: https://docs.aave.com/developers/core-contracts/pool#liquidationcall
         # debtToCover parameter can be set to uint(-1) and the protocol will proceed
         # with the highest possible liquidation allowed by the close factor.
@@ -160,6 +160,7 @@ class LiquidationAgent:
                         10**32,
                         False,
                     ],
+                    checked=False,
                 )
             )
 

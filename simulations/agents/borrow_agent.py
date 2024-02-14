@@ -68,7 +68,7 @@ class BorrowAgent:
                     env, self.address, self.oracle_address, [self.token_b_address]
                 )[0][0]
                 coef = 10 ** (self.decimals_token_b - 4)
-                u = rng.integers(low=9000, high=10000)
+                u = rng.integers(low=7000, high=9500)
                 available_borrow = int(
                     coef * available_borrow_base * u / borrow_asset_price
                 )
@@ -94,4 +94,6 @@ class BorrowAgent:
         )[0]
         health_factor = user_data[5] / 10**18
         health_factor = min(health_factor, 100)
-        return (self.step, health_factor)
+        collateral_base = user_data[0]
+        debt_base = user_data[1]
+        return self.step, health_factor, collateral_base, debt_base

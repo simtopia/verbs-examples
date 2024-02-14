@@ -8,16 +8,23 @@ This repo uses [hatch](https://hatch.pypa.io/latest/) for dependency
 management. The examples can the be run using
 
 ```
-hatch run examples:uniswap <ALCHEMY-KEY>
+hatch run examples:uniswap
 ```
 
 or
 
 ```
-hatch run examples:aave <ALCHEMY-KEY>
+hatch run examples:aave
 ```
-
-where `<ALCHEMY-KEY>` is a API key for [Alchemy](https://www.alchemy.com/).
 
 You can also use the `--help` argument to see additional arguments
 to the scripts.
+
+The package can also be imported to run the simulations, e.g.
+
+```
+from simulations.aave import sim
+
+...
+results = run_from_cache(seed, n_steps, n_borrow_agents, sigma)
+```
