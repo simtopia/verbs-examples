@@ -330,7 +330,6 @@ class AdversarialLiquidationAgent(LiquidationAgent):
                 )
                 upper_bound_hf = sqrt_upper_bound_hf**2
                 if 1.0 < hf / 10**18 and hf / 10**18 < upper_bound_hf:
-                    print("hola")
                     total_debt_to_cover += debt_to_cover
 
         # front-run transaction
