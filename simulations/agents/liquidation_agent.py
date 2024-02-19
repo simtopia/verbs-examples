@@ -79,7 +79,7 @@ class LiquidationAgent:
                     True,
                 ],
             )[1]
-        except:  # noqa: E722
+        except verbs.envs.RevertError:
             return False
 
         decoded_liquidation_call_event = (
