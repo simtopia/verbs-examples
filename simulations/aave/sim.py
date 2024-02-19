@@ -47,7 +47,10 @@ import verbs
 
 from simulations import abi
 from simulations.agents.borrow_agent import BorrowAgent
-from simulations.agents.liquidation_agent import LiquidationAgent
+from simulations.agents.liquidation_agent import (
+    AdversarialLiquidationAgent,
+    LiquidationAgent,
+)
 from simulations.agents.uniswap_agent import DummyUniswapAgent, UniswapAgent
 from simulations.utils.erc20 import mint_and_approve_dai, mint_and_approve_weth
 
@@ -76,11 +79,8 @@ def runner(
     n_borrow_agents: int,
     sigma: float,
     init_cache: bool = False,
+    adversarial_liquidator: bool = False,
 ):
-
-    uniswap_agent_type = (
-        partial(DummyUniswapAgent, sim_n_steps=n_steps) if init_cache else UniswapAgent
-    )
 
     # Use uniswap_factory contract to get the address of WETH-DAI pool
     fee = 3000
@@ -111,6 +111,9 @@ def runner(
     # -------------------------
     # Initialize Uniswap agent
     # -------------------------
+    uniswap_agent_type = (
+        partial(DummyUniswapAgent, sim_n_steps=n_steps) if init_cache else UniswapAgent
+    )
     uniswap_agent = uniswap_agent_type(
         env=env,
         dt=0.01,
@@ -177,45 +180,6 @@ def runner(
             amount=int(1e24),
         )
 
-    # -----------------------------
-    # Initialise liquidation agent
-    # -----------------------------
-    liquidation_agent = LiquidationAgent(
-        env=env,
-        i=1000,
-        pool_implementation_abi=abi.aave_pool,
-        mintable_erc20_abi=abi.weth_erc20,
-        pool_address=aave_pool_address,
-        token_a_address=weth_address,
-        token_b_address=dai_address,
-        liquidation_addresses=[borrow_agent.address for borrow_agent in borrow_agents],
-        uniswap_pool_abi=abi.uniswap_pool,
-        quoter_abi=abi.quoter,
-        swap_router_abi=abi.swap_router,
-        uniswap_pool_address=uniswap_weth_dai,
-        quoter_address=verbs.utils.hex_to_bytes(UNISWAP_QUOTER),
-        swap_router_address=swap_router_address,
-        uniswap_fee=fee,
-    )
-
-    mint_and_approve_weth(
-        env=env,
-        weth_abi=abi.weth_erc20,
-        weth_address=weth_address,
-        recipient=liquidation_agent.address,
-        contract_approved_address=swap_router_address,
-        amount=int(1e30),
-    )
-    mint_and_approve_dai(
-        env=env,
-        dai_abi=abi.dai,
-        dai_address=dai_address,
-        contract_approved_address=aave_pool_address,
-        dai_admin_address=dai_admin_address,
-        recipient=liquidation_agent.address,
-        amount=int(1e35),
-    )
-
     # ----------------------------------------------
     # Replace Chainlink with our price aggregation
     # ----------------------------------------------
@@ -276,6 +240,54 @@ def runner(
         ],
     )
 
+    # -----------------------------
+    # Initialise liquidation agent
+    # -----------------------------
+    liquidation_agent_type = (
+        partial(
+            AdversarialLiquidationAgent,
+            aave_oracle_abi=abi.aave_oracle,
+            aave_oracle_address=aave_oracle_address,
+        )
+        if adversarial_liquidator
+        else LiquidationAgent
+    )
+    liquidation_agent = liquidation_agent_type(
+        env=env,
+        i=1000,
+        pool_implementation_abi=abi.aave_pool,
+        mintable_erc20_abi=abi.weth_erc20,
+        pool_address=aave_pool_address,
+        token_a_address=weth_address,
+        token_b_address=dai_address,
+        liquidation_addresses=[borrow_agent.address for borrow_agent in borrow_agents],
+        uniswap_pool_abi=abi.uniswap_pool,
+        quoter_abi=abi.quoter,
+        swap_router_abi=abi.swap_router,
+        uniswap_pool_address=uniswap_weth_dai,
+        quoter_address=verbs.utils.hex_to_bytes(UNISWAP_QUOTER),
+        swap_router_address=swap_router_address,
+        uniswap_fee=fee,
+    )
+
+    mint_and_approve_weth(
+        env=env,
+        weth_abi=abi.weth_erc20,
+        weth_address=weth_address,
+        recipient=liquidation_agent.address,
+        contract_approved_address=swap_router_address,
+        amount=int(1e30),
+    )
+    mint_and_approve_dai(
+        env=env,
+        dai_abi=abi.dai,
+        dai_address=dai_address,
+        contract_approved_address=aave_pool_address,
+        dai_admin_address=dai_admin_address,
+        recipient=liquidation_agent.address,
+        amount=int(1e35),
+    )
+
     # Run simulation
     agents = [uniswap_agent] + borrow_agents + [liquidation_agent]
 
@@ -318,6 +330,8 @@ def run_from_cache(seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
 
     env = verbs.envs.EmptyEnv(seed, cache=cache)
 
-    _, results = runner(env, seed, n_steps, n_borrow_agents, sigma)
+    _, results = runner(
+        env, seed, n_steps, n_borrow_agents, sigma, adversarial_liquidator=True
+    )
 
     return results

@@ -34,11 +34,12 @@ SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 UNISWAP_QUOTER = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e"
 
 
-def runner(env, seed: int, n_steps: int, init_cache: bool = False):
-
-    uniswap_agent_type = (
-        partial(DummyUniswapAgent, sim_n_steps=n_steps) if init_cache else UniswapAgent
-    )
+def runner(
+    env,
+    seed: int,
+    n_steps: int,
+    init_cache: bool = False,
+):
 
     # Convert addresses
     weth_address = verbs.utils.hex_to_bytes(WETH)
@@ -65,6 +66,10 @@ def runner(env, seed: int, n_steps: int, init_cache: bool = False):
     # ------------------------
     # Initialize Uniswap agent
     # ------------------------
+    uniswap_agent_type = (
+        partial(DummyUniswapAgent, sim_n_steps=n_steps) if init_cache else UniswapAgent
+    )
+
     agent = uniswap_agent_type(
         env=env,
         dt=0.01,
