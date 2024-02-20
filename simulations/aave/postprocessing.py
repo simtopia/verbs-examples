@@ -7,7 +7,7 @@ import pandas as pd
 
 def save(batch_results: List[List[Tuple[int, int]]]):
 
-    results_dir = "results/sim_uniswap_gbm"
+    results_dir = "results/sim_aave_gbm"
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
 
