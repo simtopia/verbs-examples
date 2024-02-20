@@ -1,7 +1,6 @@
 import math
 import typing
 
-import eth_abi
 import numpy as np
 import verbs
 from scipy.optimize import root_scalar
@@ -183,7 +182,7 @@ class BaseUniswapAgent:
                     maxiter=5,
                 )
                 change_token_1 = sol.root
-            except eth_abi.exceptions.ValueOutOfBounds:
+            except:  # noqa: E722
                 return None
 
         swap = self.swap_router_abi.exactInputSingle.transaction(
@@ -256,7 +255,7 @@ class BaseUniswapAgent:
                     maxiter=5,
                 )
                 change_token_1 = sol.root
-            except eth_abi.exceptions.ValueOutOfBounds:
+            except:  # noqa: E722
                 return None
 
         swap = self.swap_router_abi.exactOutputSingle.transaction(
