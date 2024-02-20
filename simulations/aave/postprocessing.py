@@ -19,7 +19,7 @@ def save(batch_results: List[List[Tuple[int, int]]]):
             flattened_sample = [reduce(lambda x, y: x + y, record) for record in sample]
             df_sample = pd.DataFrame(flattened_sample)
             df_sample = df_sample.assign(seed=seed)
-        df_sample = df_sample.assign(**params)
-        df_list.append(df_sample)
+            df_sample = df_sample.assign(**params)
+            df_list.append(df_sample)
     df = pd.concat(df_list)
     df.to_parquet(os.path.join(results_dir, "batch_results.parquet"))
