@@ -39,6 +39,8 @@ def runner(
     seed: int,
     n_steps: int,
     init_cache: bool = False,
+    mu: float = 0.0,
+    sigma: float = 0.3,
 ):
 
     # Convert addresses
@@ -75,8 +77,8 @@ def runner(
         dt=0.01,
         fee=fee,
         i=10,  # idx of agent
-        mu=0.0,
-        sigma=0.3,
+        mu=mu,
+        sigma=sigma,
         swap_router_abi=abi.swap_router,
         swap_router_address=swap_router_address,
         token_a_address=weth_address,
@@ -115,7 +117,12 @@ def runner(
     runner = verbs.sim.Sim(seed, env, agents)
     results = runner.run(n_steps=n_steps)
 
-    return env, results
+    if init_cache:
+        cache = env.export_cache()
+        with open(f"{PATH}/cache.json", "w") as f:
+            json.dump(verbs.utils.cache_to_json(cache), f)
+
+    return results
 
 
 def init_cache(key: str, block_number: int, seed: int, n_steps: int):
@@ -126,14 +133,7 @@ def init_cache(key: str, block_number: int, seed: int, n_steps: int):
         seed,
         block_number,
     )
-
-    env, _ = runner(env, seed, n_steps, init_cache=True)
-
-    cache = env.export_cache()
-    with open(f"{PATH}/cache.json", "w") as f:
-        json.dump(verbs.utils.cache_to_json(cache), f)
-
-    return cache
+    _ = runner(env, seed, n_steps, init_cache=True)
 
 
 def run_from_cache(seed: int, n_steps: int):
@@ -142,9 +142,7 @@ def run_from_cache(seed: int, n_steps: int):
         cache_json = json.load(f)
 
     cache = verbs.utils.cache_from_json(cache_json)
-
     env = verbs.envs.EmptyEnv(seed, cache=cache)
-
-    _, results = runner(env, seed, n_steps)
+    results = runner(env, seed, n_steps)
 
     return results

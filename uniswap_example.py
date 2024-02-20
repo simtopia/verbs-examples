@@ -1,4 +1,10 @@
 import argparse
+import json
+import os
+from itertools import product
+
+import verbs
+from verbs.batch_runner import batch_run
 
 import simulations
 
@@ -12,6 +18,25 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    # run a single simulation
     results = simulations.uniswap.sim.run_from_cache(args.seed, args.n_steps)
-
     simulations.uniswap.plotting.plot_results(results)
+
+    # run a batch of simulations
+    parameters_samples = [
+        dict(mu=mu, sigma=sigma)
+        for mu, sigma in product([0.0, 0.1, -0.1], [0.1, 0.2, 0.3])
+    ]
+
+    with open(os.path.join("simulations", "uniswap", "cache.json"), "r") as f:
+        cache_json = json.load(f)
+    cache = verbs.utils.cache_from_json(cache_json)
+
+    batch_results = batch_run(
+        simulations.uniswap.sim.runner,
+        n_steps=100,
+        n_samples=10,
+        parameters_samples=parameters_samples,
+        cache=cache,
+    )
+    simulations.uniswap.postprocessing.save(batch_results)
