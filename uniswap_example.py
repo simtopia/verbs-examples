@@ -16,6 +16,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n_steps", type=int, default=100, help="Number of steps of the simulation"
     )
+    parser.add_argument("--sigma", type=float, default=0.3, help="GBM volatility")
     parser.add_argument(
         "--batch_runner",
         action="store_true",
@@ -35,16 +36,18 @@ if __name__ == "__main__":
         cache = verbs.utils.cache_from_json(cache_json)
 
         batch_results = batch_run(
-            simulations.uniswap.sim.runner,
+            simulations.uniswap.sim.run_from_batch_runner,
             n_steps=args.n_steps,
             n_samples=10,
             parameters_samples=parameters_samples,
             cache=cache,
         )
         simulations.utils.postprocessing.save(
-            batch_results, path="simulations/results/sim_uniswap_gbm"
+            batch_results, path="results/sim_uniswap_gbm"
         )
     else:
         # single simulation
-        results = simulations.uniswap.sim.run_from_cache(args.seed, args.n_steps)
+        results = simulations.uniswap.sim.run_from_cache(
+            args.seed, args.n_steps, mu=0.0, sigma=args.sigma
+        )
         simulations.uniswap.plotting.plot_results(results)

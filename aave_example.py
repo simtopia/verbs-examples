@@ -17,6 +17,7 @@ if __name__ == "__main__":
         "--n_borrow_agents", type=int, default=10, help="Number of borrowing agents"
     )
     parser.add_argument("--sigma", type=float, default=0.3, help="price volatility")
+    parser.add_argument("--mu", type=float, default=0.0, help="price drift")
     parser.add_argument(
         "--n_steps", type=int, default=100, help="Number of steps of the simulation"
     )
@@ -44,19 +45,20 @@ if __name__ == "__main__":
         cache = verbs.utils.cache_from_json(cache_json)
 
         batch_results = batch_run(
-            simulations.uniswap.sim.runner,
+            simulations.aave.sim.run_from_batch_runner,
             n_steps=args.n_steps,
             n_samples=10,
             parameters_samples=parameters_samples,
             cache=cache,
+            n_borrow_agents=args.n_borrow_agents,
         )
         simulations.utils.postprocessing.save(
-            batch_results, path="simulations/results/sim_aave_uniswap"
+            batch_results, path="results/sim_aave_uniswap"
         )
     else:
         # run a single simulation
         results = simulations.aave.sim.run_from_cache(
-            args.seed, args.n_steps, args.n_borrow_agents, args.sigma
+            args.seed, args.n_steps, args.n_borrow_agents, args.mu, args.sigma
         )
 
         simulations.aave.plotting.plot_results(results, args.n_borrow_agents)

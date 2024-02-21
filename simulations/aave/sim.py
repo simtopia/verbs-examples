@@ -77,8 +77,9 @@ def runner(
     seed: int,
     n_steps: int,
     n_borrow_agents: int,
-    sigma: float,
     init_cache: bool = False,
+    mu: float = 0.0,
+    sigma: float = 0.3,
     adversarial_liquidator: bool = False,
 ):
 
@@ -119,7 +120,7 @@ def runner(
         dt=0.01,
         fee=fee,
         i=10,
-        mu=0.0,
+        mu=mu,
         sigma=sigma,
         swap_router_abi=abi.swap_router,
         swap_router_address=swap_router_address,
@@ -303,7 +304,8 @@ def init_cache(
     seed: int,
     n_steps: int,
     n_borrow_agents: int,
-    sigma: float,
+    mu: float = 0.1,
+    sigma: float = 0.6,
 ):
 
     # Fork environment from mainnet
@@ -313,7 +315,9 @@ def init_cache(
         block_number,
     )
 
-    env, _ = runner(env, seed, n_steps, n_borrow_agents, sigma, init_cache=True)
+    env, _ = runner(
+        env, seed, n_steps, n_borrow_agents, sigma=sigma, mu=mu, init_cache=True
+    )
     cache = env.export_cache()
     with open(f"{PATH}/cache.json", "w") as f:
         json.dump(verbs.utils.cache_to_json(cache), f)
@@ -321,7 +325,9 @@ def init_cache(
     return cache
 
 
-def run_from_cache(seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
+def run_from_cache(
+    seed: int, n_steps: int, n_borrow_agents: int, mu: float, sigma: float
+):
 
     with open(f"{PATH}/cache.json", "r") as f:
         cache_json = json.load(f)
@@ -331,7 +337,37 @@ def run_from_cache(seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
     env = verbs.envs.EmptyEnv(seed, cache=cache)
 
     _, results = runner(
-        env, seed, n_steps, n_borrow_agents, sigma, adversarial_liquidator=True
+        env,
+        seed,
+        n_steps,
+        n_borrow_agents,
+        sigma=sigma,
+        mu=mu,
+        adversarial_liquidator=True,
+        init_cache=False,
     )
 
+    return results
+
+
+def run_from_batch_runner(
+    env,
+    seed: int,
+    n_steps: int,
+    n_borrow_agents: int,
+    mu: float = 0.0,
+    sigma: float = 0.3,
+    adversarial_liquidator: bool = False,
+):
+
+    _, results = runner(
+        env,
+        seed,
+        n_steps,
+        n_borrow_agents,
+        sigma=sigma,
+        mu=mu,
+        adversarial_liquidator=adversarial_liquidator,
+        init_cache=False,
+    )
     return results
