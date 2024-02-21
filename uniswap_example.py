@@ -23,12 +23,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    # run a single simulation
-    results = simulations.uniswap.sim.run_from_cache(args.seed, args.n_steps)
-    simulations.uniswap.plotting.plot_results(results)
-
-    # run a batch of simulations
     if args.batch_runner:
+        # run a batch of simulations
         parameters_samples = [
             dict(mu=mu, sigma=sigma)
             for mu, sigma in product([0.0, 0.1, -0.1], [0.1, 0.2, 0.3])
@@ -48,3 +44,7 @@ if __name__ == "__main__":
         simulations.utils.postprocessing.save(
             batch_results, path="simulations/results/sim_uniswap_gbm"
         )
+    else:
+        # single simulation
+        results = simulations.uniswap.sim.run_from_cache(args.seed, args.n_steps)
+        simulations.uniswap.plotting.plot_results(results)
