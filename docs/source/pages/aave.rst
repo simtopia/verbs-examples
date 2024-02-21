@@ -20,7 +20,7 @@ In this example we consider the interaction between Aave and Uniswap:
   Factors are < 1) as long as the liquidation is profitable for
   the liquidation agent.
 
-  .. note::
+  .. tip::
 
     The liquidator agent checks whether a liquidation is profitable before making
     the liquidation call:
@@ -35,4 +35,12 @@ In this example we consider the interaction between Aave and Uniswap:
       then they make the transaction.
 
 
-Reference: <https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333>
+.. note::
+    Full code for this simulation is in https://github.com/simtopia/verbs-examples/blob/main/aave_example.py
+
+    Reference for this simulation: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
+
+.. toctree::
+    :maxdepth: 2
+
+    aave_liquidator

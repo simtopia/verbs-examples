@@ -11,6 +11,9 @@ to make a profit.
     The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
     external market is modelled by a GBM.
 
+.. note::
+    Full code for this simulation is in https://github.com/simtopia/verbs-examples/blob/main/uniswap_example.py
+
 The goal of the simulation is for the price of Uniswap to follow the price
 in the external market. This happens when a trader makes arbitrage by trading
 in both markets (buying an asset where it is cheaper,

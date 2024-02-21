@@ -2,6 +2,7 @@
 Simulation
 ***********
 
+.. _sec-uniswap:
 Simulation environment
 =======================
 
@@ -215,6 +216,7 @@ including the external market as a Geometric Brownian Motion.
             )
             return swap
 
+Full implementation of the Uniswap trader is `here <https://github.com/simtopia/verbs-examples/blob/main/simulations/agents/uniswap_agent.py>`_.
 
 Next, we initialise the Uniswap trader and we mint enough WETH and DAI
 for the trader to use during the simulation.
@@ -268,12 +270,82 @@ the cache is saved.
         results = runner.run(n_steps=n_steps)
         if init_cache:
             cache = env.export_cache()
-            with open(f"{PATH}/cache.json", "w") as f:
+            with open(f"{PATH_CACHE}/cache.json", "w") as f:
                 json.dump(verbs.utils.cache_to_json(cache), f)
+        return results
 
 
 
 The sim runner returns a list of records for each agent at every step
-of the simulation. In this case we can readily convert this into a Numpy
-array representing a time-series of the balances of each agent over the
-course of the simulation.
+of the simulation.
+
+
+Batch execution from cache
+---------------------------
+Typically we might want to execute batches of simulation across
+random seeds and simulation parameter samples,
+:py:meth:`verbs.sim.batch_runner.batch_run`
+implements functionality to generate simulation samples in parallel.
+
+The simulation environments for the samples can be initialised from
+a cache (generated using the :py:meth:`verbs.envs.ForkEnv.export_cache` method
+as seen in the above code snippet).
+
+Batch execution requires a simulation execution function with the signature
+
+.. code-block:: python
+
+   def runner(
+       env, seed, n_steps, **params, **sim_kwargs
+   ) -> typing.Any:
+       ...
+
+We use the Uniswap simulation :py:meth:`runner` function that we have created
+to run ``n_samples`` simulations across different values for the GBM drift
+and volatility, :math:`\mu, \sigma` as follows
+
+.. code-block:: python
+
+    parameters_samples = [
+        dict(mu=mu, sigma=sigma)
+        for mu, sigma in product([0.0, 0.1, -0.1], [0.1, 0.2, 0.3])
+    ]
+
+    with open(f"{PATH_CACHE}/cache.json"), "r") as f:
+        cache_json = json.load(f)
+    cache = verbs.utils.cache_from_json(cache_json)
+
+    batch_results = verbs.batch_runner.batch_run(
+        runner,
+        n_steps=100,
+        n_samples=10,
+        parameters_samples=parameters_samples,
+        cache=cache,
+    )
+
+The batch-runner will generate sample and random seed combinations, and
+execute simulation across these combinations in parallel. In this example
+it will generate 10 Monte-Carlo samples for each set of parameters (90
+samples, 9 parameter sets x 10 random seeds) each run for 100 steps.
+
+For convenience the results are returned grouped by the parameters used to
+generate them, in this case they will have the structure
+
+.. code-block:: python
+
+   [
+       {
+           "params": {"mu": 0.0, "sigma":0.1},
+           "samples": [
+               # List of Monte-Carlo sample results
+               ...
+           ]
+       },
+       {
+           "params": {"mu": 0.0, "sigma":0.2},
+           "samples": [
+               # List of Monte-Carlo sample results
+               ...
+           ]
+       }
+   ]
