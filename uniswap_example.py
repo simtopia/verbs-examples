@@ -40,9 +40,11 @@ if __name__ == "__main__":
 
         batch_results = batch_run(
             simulations.uniswap.sim.runner,
-            n_steps=100,
+            n_steps=args.n_steps,
             n_samples=10,
             parameters_samples=parameters_samples,
             cache=cache,
         )
-        simulations.uniswap.postprocessing.save(batch_results)
+        simulations.utils.postprocessing.save(
+            batch_results, path="simulations/results/sim_uniswap_gbm"
+        )

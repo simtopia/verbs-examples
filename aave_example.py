@@ -32,14 +32,8 @@ if __name__ == "__main__":
         0 < args.n_borrow_agents < 100
     ), "Number of borrow agents must be between 0 and 100"
 
-    results = simulations.aave.sim.run_from_cache(
-        args.seed, args.n_steps, args.n_borrow_agents, args.sigma
-    )
-
-    simulations.aave.plotting.plot_results(results, args.n_borrow_agents)
-
-    # run a batch of simulations
     if args.batch_runner:
+        # run a batch of simulations
         parameters_samples = [
             dict(mu=mu, sigma=sigma)
             for mu, sigma in product([0.0, 0.1, -0.1], [0.1, 0.2, 0.3])
@@ -51,9 +45,18 @@ if __name__ == "__main__":
 
         batch_results = batch_run(
             simulations.uniswap.sim.runner,
-            n_steps=100,
+            n_steps=args.n_steps,
             n_samples=10,
             parameters_samples=parameters_samples,
             cache=cache,
         )
-        simulations.aave.postprocessing.save(batch_results)
+        simulations.utils.postprocessing.save(
+            batch_results, path="simulations/results/sim_aave_uniswap"
+        )
+    else:
+        # run a single simulation
+        results = simulations.aave.sim.run_from_cache(
+            args.seed, args.n_steps, args.n_borrow_agents, args.sigma
+        )
+
+        simulations.aave.plotting.plot_results(results, args.n_borrow_agents)
