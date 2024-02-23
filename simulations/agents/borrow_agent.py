@@ -94,6 +94,6 @@ class BorrowAgent:
         )[0]
         health_factor = user_data[5] / 10**18
         health_factor = min(health_factor, 100)
-        collateral_base = user_data[0]
-        debt_base = user_data[1]
+        collateral_base = user_data[0] / 10**8
+        debt_base = user_data[1] / 10**8
         return self.step, health_factor, collateral_base, debt_base

@@ -47,7 +47,10 @@ import verbs
 
 from simulations import abi
 from simulations.agents.borrow_agent import BorrowAgent
-from simulations.agents.liquidation_agent import LiquidationAgent
+from simulations.agents.liquidation_agent import (
+    AdversarialLiquidationAgent,
+    LiquidationAgent,
+)
 from simulations.agents.uniswap_agent import DummyUniswapAgent, UniswapAgent
 from simulations.utils.erc20 import mint_and_approve_dai, mint_and_approve_weth
 
@@ -73,14 +76,13 @@ def runner(
     env,
     seed: int,
     n_steps: int,
+    *,
     n_borrow_agents: int,
-    sigma: float,
-    init_cache: bool = False,
+    mu: float = 0.0,
+    sigma: float = 0.3,
+    adversarial_liquidator: bool = False,
+    uniswap_agent_type=UniswapAgent,
 ):
-
-    uniswap_agent_type = (
-        partial(DummyUniswapAgent, sim_n_steps=n_steps) if init_cache else UniswapAgent
-    )
 
     # Use uniswap_factory contract to get the address of WETH-DAI pool
     fee = 3000
@@ -116,7 +118,7 @@ def runner(
         dt=0.01,
         fee=fee,
         i=10,
-        mu=0.0,
+        mu=mu,
         sigma=sigma,
         swap_router_abi=abi.swap_router,
         swap_router_address=swap_router_address,
@@ -177,10 +179,72 @@ def runner(
             amount=int(1e24),
         )
 
+    # ----------------------------------------------
+    # Replace Chainlink with our price aggregation
+    # ----------------------------------------------
+
+    uniswap_aggregator_address = abi.uniswap_aggregator.constructor.deploy(
+        env,
+        verbs.utils.ZERO_ADDRESS,
+        abi.UNISWAP_AGGREGATOR_BYTECODE,
+        [
+            uniswap_weth_dai,
+            weth_address,
+            dai_address,
+        ],
+    )
+
+    # We load the dummy Mock Aggregator contract that keeps the price of a
+    # token constant (that will be our numeraire)
+    mock_aggregator_address = abi.mock_aggregator.constructor.deploy(
+        env, verbs.utils.ZERO_ADDRESS, abi.MOCK_AGGREGATOR_BYTECODE, [10**8]
+    )
+
+    aave_acl_admin = abi.aave_pool_addresses_provider.getACLAdmin.call(
+        env, verbs.utils.ZERO_ADDRESS, aave_address_provider, []
+    )[0][0]
+    aave_acl_admin_address = verbs.utils.hex_to_bytes(aave_acl_admin)
+
+    pool_admin_role = abi.aave_acl_manager.POOL_ADMIN_ROLE.call(
+        env,
+        aave_acl_admin_address,
+        aave_acl_manager_address,
+        [],
+    )[0][0]
+
+    abi.aave_acl_manager.grantRole.execute(
+        env,
+        aave_acl_admin_address,
+        aave_acl_manager_address,
+        [
+            pool_admin_role,
+            aave_acl_admin_address,
+        ],
+    )
+
+    abi.aave_oracle.setAssetSources.execute(
+        env,
+        aave_acl_admin_address,
+        verbs.utils.hex_to_bytes(AAVE_ORACLE),
+        [
+            [weth_address, dai_address],
+            [uniswap_aggregator_address, mock_aggregator_address],
+        ],
+    )
+
     # -----------------------------
     # Initialise liquidation agent
     # -----------------------------
-    liquidation_agent = LiquidationAgent(
+    liquidation_agent_type = (
+        partial(
+            AdversarialLiquidationAgent,
+            aave_oracle_abi=abi.aave_oracle,
+            aave_oracle_address=aave_oracle_address,
+        )
+        if adversarial_liquidator
+        else LiquidationAgent
+    )
+    liquidation_agent = liquidation_agent_type(
         env=env,
         i=1000,
         pool_implementation_abi=abi.aave_pool,
@@ -216,73 +280,13 @@ def runner(
         amount=int(1e35),
     )
 
-    # ----------------------------------------------
-    # Replace Chainlink with our price aggregation
-    # ----------------------------------------------
-
-    # We load the Uniswap Aggregator contract that gets the price from the Uniswap pool
-    with open(f"{PATH}/../abi/UniswapAggregator.json", "r") as f:
-        uniswap_aggregator_contract = json.load(f)
-
-    uniswap_aggregator_address = abi.uniswap_aggregator.constructor.deploy(
-        env,
-        verbs.utils.ZERO_ADDRESS,
-        uniswap_aggregator_contract["bytecode"],
-        [
-            uniswap_weth_dai,
-            weth_address,
-            dai_address,
-        ],
-    )
-
-    # We load the dummy Mock Aggregator contract that keeps the price of a
-    # token constant (that will be our numeraire)
-    with open(f"{PATH}/../abi/MockAggregator.json", "r") as f:
-        mock_aggregator_contract = json.load(f)
-
-    mock_aggregator_address = abi.mock_aggregator.constructor.deploy(
-        env, verbs.utils.ZERO_ADDRESS, mock_aggregator_contract["bytecode"], [10**8]
-    )
-
-    aave_acl_admin = abi.aave_pool_addresses_provider.getACLAdmin.call(
-        env, verbs.utils.ZERO_ADDRESS, aave_address_provider, []
-    )[0][0]
-    aave_acl_admin_address = verbs.utils.hex_to_bytes(aave_acl_admin)
-
-    pool_admin_role = abi.aave_acl_manager.POOL_ADMIN_ROLE.call(
-        env,
-        aave_acl_admin_address,
-        aave_acl_manager_address,
-        [],
-    )[0][0]
-
-    abi.aave_acl_manager.grantRole.execute(
-        env,
-        aave_acl_admin_address,
-        aave_acl_manager_address,
-        [
-            pool_admin_role,
-            aave_acl_admin_address,
-        ],
-    )
-
-    abi.aave_oracle.setAssetSources.execute(
-        env,
-        aave_acl_admin_address,
-        verbs.utils.hex_to_bytes(AAVE_ORACLE),
-        [
-            [weth_address, dai_address],
-            [uniswap_aggregator_address, mock_aggregator_address],
-        ],
-    )
-
     # Run simulation
     agents = [uniswap_agent] + borrow_agents + [liquidation_agent]
 
     runner = verbs.sim.Sim(seed, env, agents)
     results = runner.run(n_steps=n_steps)
 
-    return env, results
+    return results
 
 
 def init_cache(
@@ -291,7 +295,8 @@ def init_cache(
     seed: int,
     n_steps: int,
     n_borrow_agents: int,
-    sigma: float,
+    mu: float = 0.1,
+    sigma: float = 0.6,
 ):
 
     # Fork environment from mainnet
@@ -301,23 +306,18 @@ def init_cache(
         block_number,
     )
 
-    env, _ = runner(env, seed, n_steps, n_borrow_agents, sigma, init_cache=True)
+    runner(
+        env,
+        seed,
+        n_steps,
+        n_borrow_agents=n_borrow_agents,
+        sigma=sigma,
+        mu=mu,
+        uniswap_agent_type=partial(DummyUniswapAgent, sim_n_steps=n_steps),
+    )
     cache = env.export_cache()
+
     with open(f"{PATH}/cache.json", "w") as f:
         json.dump(verbs.utils.cache_to_json(cache), f)
 
     return cache
-
-
-def run_from_cache(seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
-
-    with open(f"{PATH}/cache.json", "r") as f:
-        cache_json = json.load(f)
-
-    cache = verbs.utils.cache_from_json(cache_json)
-
-    env = verbs.envs.EmptyEnv(seed, cache=cache)
-
-    _, results = runner(env, seed, n_steps, n_borrow_agents, sigma)
-
-    return results

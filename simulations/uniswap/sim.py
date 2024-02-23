@@ -34,11 +34,15 @@ SWAP_ROUTER = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 UNISWAP_QUOTER = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e"
 
 
-def runner(env, seed: int, n_steps: int, init_cache: bool = False):
-
-    uniswap_agent_type = (
-        partial(DummyUniswapAgent, sim_n_steps=n_steps) if init_cache else UniswapAgent
-    )
+def runner(
+    env,
+    seed: int,
+    n_steps: int,
+    *,
+    mu: float = 0.0,
+    sigma: float = 0.3,
+    uniswap_agent_type=UniswapAgent,
+):
 
     # Convert addresses
     weth_address = verbs.utils.hex_to_bytes(WETH)
@@ -70,8 +74,8 @@ def runner(env, seed: int, n_steps: int, init_cache: bool = False):
         dt=0.01,
         fee=fee,
         i=10,  # idx of agent
-        mu=0.0,
-        sigma=0.3,
+        mu=mu,
+        sigma=sigma,
         swap_router_abi=abi.swap_router,
         swap_router_address=swap_router_address,
         token_a_address=weth_address,
@@ -110,10 +114,17 @@ def runner(env, seed: int, n_steps: int, init_cache: bool = False):
     runner = verbs.sim.Sim(seed, env, agents)
     results = runner.run(n_steps=n_steps)
 
-    return env, results
+    return results
 
 
-def init_cache(key: str, block_number: int, seed: int, n_steps: int):
+def init_cache(
+    key: str,
+    block_number: int,
+    seed: int,
+    n_steps: int,
+    mu: float = 0.1,
+    sigma: float = 0.6,
+):
 
     # Fork environment from mainnet
     env = verbs.envs.ForkEnv(
@@ -121,25 +132,18 @@ def init_cache(key: str, block_number: int, seed: int, n_steps: int):
         seed,
         block_number,
     )
-
-    env, _ = runner(env, seed, n_steps, init_cache=True)
+    runner(
+        env,
+        seed,
+        n_steps,
+        mu=mu,
+        sigma=sigma,
+        uniswap_agent_type=partial(DummyUniswapAgent, sim_n_steps=n_steps),
+    )
 
     cache = env.export_cache()
+
     with open(f"{PATH}/cache.json", "w") as f:
         json.dump(verbs.utils.cache_to_json(cache), f)
 
     return cache
-
-
-def run_from_cache(seed: int, n_steps: int):
-
-    with open(f"{PATH}/cache.json", "r") as f:
-        cache_json = json.load(f)
-
-    cache = verbs.utils.cache_from_json(cache_json)
-
-    env = verbs.envs.EmptyEnv(seed, cache=cache)
-
-    _, results = runner(env, seed, n_steps)
-
-    return results

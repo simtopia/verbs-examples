@@ -34,7 +34,9 @@ classifiers = [
 dependencies = [
   "verbs == 0.2.1",
   "matplotlib",
-  "scipy"
+  "scipy",
+  "pandas",
+  "pyarrow"
 ]
 
 [tool.hatch.metadata]
