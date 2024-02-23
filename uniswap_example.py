@@ -24,6 +24,11 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    with open(os.path.join("simulations", "uniswap", "cache.json"), "r") as f:
+        cache_json = json.load(f)
+
+    cache = verbs.utils.cache_from_json(cache_json)
+
     if args.batch_runner:
         # run a batch of simulations
         parameters_samples = [
@@ -31,12 +36,8 @@ if __name__ == "__main__":
             for mu, sigma in product([0.0, 0.1, -0.1], [0.1, 0.2, 0.3])
         ]
 
-        with open(os.path.join("simulations", "uniswap", "cache.json"), "r") as f:
-            cache_json = json.load(f)
-        cache = verbs.utils.cache_from_json(cache_json)
-
         batch_results = batch_run(
-            simulations.uniswap.sim.run_from_batch_runner,
+            simulations.uniswap.sim.runner,
             n_steps=args.n_steps,
             n_samples=10,
             parameters_samples=parameters_samples,
@@ -47,7 +48,9 @@ if __name__ == "__main__":
         )
     else:
         # single simulation
-        results = simulations.uniswap.sim.run_from_cache(
-            args.seed, args.n_steps, mu=0.0, sigma=args.sigma
+        env = verbs.envs.EmptyEnv(args.seed, cache=cache)
+
+        results = simulations.uniswap.sim.runner(
+            env, args.seed, args.n_steps, mu=0.0, sigma=args.sigma
         )
         simulations.uniswap.plotting.plot_results(results)
