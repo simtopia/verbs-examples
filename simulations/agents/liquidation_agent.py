@@ -212,7 +212,10 @@ class LiquidationAgent:
             ],
         )[0][0]
 
-        return current_balance_collateral_asset, current_balance_debt_asset
+        return (
+            current_balance_collateral_asset / 10**18,
+            current_balance_debt_asset / 10**18,
+        )
 
 
 class AdversarialLiquidationAgent(LiquidationAgent):

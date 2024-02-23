@@ -38,9 +38,10 @@ def runner(
     env,
     seed: int,
     n_steps: int,
-    init_cache: bool = False,
+    *,
     mu: float = 0.0,
     sigma: float = 0.3,
+    uniswap_agent_type=UniswapAgent,
 ):
 
     # Convert addresses
@@ -117,15 +118,17 @@ def runner(
     runner = verbs.sim.Sim(seed, env, agents)
     results = runner.run(n_steps=n_steps)
 
-    if init_cache:
-        cache = env.export_cache()
-        with open(f"{PATH}/cache.json", "w") as f:
-            json.dump(verbs.utils.cache_to_json(cache), f)
-
     return results
 
 
-def init_cache(key: str, block_number: int, seed: int, n_steps: int):
+def init_cache(
+    key: str,
+    block_number: int,
+    seed: int,
+    n_steps: int,
+    mu: float = 0.1,
+    sigma: float = 0.6,
+):
 
     # Fork environment from mainnet
     env = verbs.envs.ForkEnv(
@@ -133,16 +136,18 @@ def init_cache(key: str, block_number: int, seed: int, n_steps: int):
         seed,
         block_number,
     )
-    _ = runner(env, seed, n_steps, init_cache=True)
+    runner(
+        env,
+        seed,
+        n_steps,
+        mu=mu,
+        sigma=sigma,
+        uniswap_agent_type=partial(DummyUniswapAgent, sim_n_steps=n_steps),
+    )
 
+    cache = env.export_cache()
 
-def run_from_cache(seed: int, n_steps: int):
+    with open(f"{PATH}/cache.json", "w") as f:
+        json.dump(verbs.utils.cache_to_json(cache), f)
 
-    with open(f"{PATH}/cache.json", "r") as f:
-        cache_json = json.load(f)
-
-    cache = verbs.utils.cache_from_json(cache_json)
-    env = verbs.envs.EmptyEnv(seed, cache=cache)
-    results = runner(env, seed, n_steps)
-
-    return results
+    return cache

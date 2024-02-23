@@ -76,10 +76,12 @@ def runner(
     env,
     seed: int,
     n_steps: int,
+    *,
     n_borrow_agents: int,
-    sigma: float,
-    init_cache: bool = False,
+    mu: float = 0.0,
+    sigma: float = 0.3,
     adversarial_liquidator: bool = False,
+    uniswap_agent_type=UniswapAgent,
 ):
 
     # Use uniswap_factory contract to get the address of WETH-DAI pool
@@ -119,7 +121,7 @@ def runner(
         dt=0.01,
         fee=fee,
         i=10,
-        mu=0.0,
+        mu=mu,
         sigma=sigma,
         swap_router_abi=abi.swap_router,
         swap_router_address=swap_router_address,
@@ -184,14 +186,10 @@ def runner(
     # Replace Chainlink with our price aggregation
     # ----------------------------------------------
 
-    # We load the Uniswap Aggregator contract that gets the price from the Uniswap pool
-    with open(f"{PATH}/../abi/UniswapAggregator.json", "r") as f:
-        uniswap_aggregator_contract = json.load(f)
-
     uniswap_aggregator_address = abi.uniswap_aggregator.constructor.deploy(
         env,
         verbs.utils.ZERO_ADDRESS,
-        uniswap_aggregator_contract["bytecode"],
+        abi.UNISWAP_AGGREGATOR_BYTECODE,
         [
             uniswap_weth_dai,
             weth_address,
@@ -201,11 +199,8 @@ def runner(
 
     # We load the dummy Mock Aggregator contract that keeps the price of a
     # token constant (that will be our numeraire)
-    with open(f"{PATH}/../abi/MockAggregator.json", "r") as f:
-        mock_aggregator_contract = json.load(f)
-
     mock_aggregator_address = abi.mock_aggregator.constructor.deploy(
-        env, verbs.utils.ZERO_ADDRESS, mock_aggregator_contract["bytecode"], [10**8]
+        env, verbs.utils.ZERO_ADDRESS, abi.MOCK_AGGREGATOR_BYTECODE, [10**8]
     )
 
     aave_acl_admin = abi.aave_pool_addresses_provider.getACLAdmin.call(
@@ -294,7 +289,7 @@ def runner(
     runner = verbs.sim.Sim(seed, env, agents)
     results = runner.run(n_steps=n_steps)
 
-    return env, results
+    return results
 
 
 def init_cache(
@@ -303,7 +298,8 @@ def init_cache(
     seed: int,
     n_steps: int,
     n_borrow_agents: int,
-    sigma: float,
+    mu: float = 0.1,
+    sigma: float = 0.6,
 ):
 
     # Fork environment from mainnet
@@ -313,25 +309,18 @@ def init_cache(
         block_number,
     )
 
-    env, _ = runner(env, seed, n_steps, n_borrow_agents, sigma, init_cache=True)
+    runner(
+        env,
+        seed,
+        n_steps,
+        n_borrow_agents=n_borrow_agents,
+        sigma=sigma,
+        mu=mu,
+        uniswap_agent_type=partial(DummyUniswapAgent, sim_n_steps=n_steps),
+    )
     cache = env.export_cache()
+
     with open(f"{PATH}/cache.json", "w") as f:
         json.dump(verbs.utils.cache_to_json(cache), f)
 
     return cache
-
-
-def run_from_cache(seed: int, n_steps: int, n_borrow_agents: int, sigma: float):
-
-    with open(f"{PATH}/cache.json", "r") as f:
-        cache_json = json.load(f)
-
-    cache = verbs.utils.cache_from_json(cache_json)
-
-    env = verbs.envs.EmptyEnv(seed, cache=cache)
-
-    _, results = runner(
-        env, seed, n_steps, n_borrow_agents, sigma, adversarial_liquidator=True
-    )
-
-    return results
