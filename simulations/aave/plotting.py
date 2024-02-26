@@ -1,3 +1,6 @@
+"""
+Data plotting utilities
+"""
 import os
 from typing import List, Tuple
 

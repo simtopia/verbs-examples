@@ -42,8 +42,9 @@ if __name__ == "__main__":
             n_samples=10,
             parameters_samples=parameters_samples,
             cache=cache,
+            show_progress=False,
         )
-        simulations.utils.postprocessing.save(
+        simulations.utils.post_processing.save(
             batch_results, path="results/sim_uniswap_gbm"
         )
     else:
@@ -51,6 +52,11 @@ if __name__ == "__main__":
         env = verbs.envs.EmptyEnv(args.seed, cache=cache)
 
         results = simulations.uniswap.sim.runner(
-            env, args.seed, args.n_steps, mu=0.0, sigma=args.sigma
+            env,
+            args.seed,
+            args.n_steps,
+            mu=0.0,
+            sigma=args.sigma,
+            show_progress=True,
         )
         simulations.uniswap.plotting.plot_results(results)

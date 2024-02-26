@@ -1,4 +1,6 @@
 """
+Uniswap simulation implementation
+
 In this example we model an agent that trades between a Uniswap pool and
 and an external market, modelled by a Geometric Brownian Motion, in order
 to make a profit.
@@ -42,6 +44,7 @@ def runner(
     mu: float = 0.0,
     sigma: float = 0.3,
     uniswap_agent_type=UniswapAgent,
+    show_progress=True,
 ):
 
     # Convert addresses
@@ -116,7 +119,7 @@ def runner(
     #   and the price of Uniswap.
     agents = [agent]
     runner = verbs.sim.Sim(seed, env, agents)
-    results = runner.run(n_steps=n_steps)
+    results = runner.run(n_steps=n_steps, show_progress=show_progress)
 
     return results
 

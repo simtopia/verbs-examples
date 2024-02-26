@@ -1,3 +1,7 @@
+"""
+Agent that trades token on uniswap to follow an external market
+"""
+
 import math
 import typing
 
@@ -10,6 +14,8 @@ TICK_SPACING = {100: 1, 500: 10, 3000: 60, 10000: 200}
 
 def tick_from_price(sqrt_price_x96: int, uniswap_fee: int) -> typing.Tuple[int, int]:
     """
+    Get tick from an argument price and fee
+
     Parameters
     ----------
     sqrt_price_x96: int
@@ -19,7 +25,7 @@ def tick_from_price(sqrt_price_x96: int, uniswap_fee: int) -> typing.Tuple[int, 
 
     Returns
     -------
-    tick_lower: int
+    int
         Lower tick of input price
     """
     price = (sqrt_price_x96 / 2**96) ** 2
@@ -35,7 +41,11 @@ def price_from_tick(tick: int) -> int:
 
 class Gbm:
     """
-    Geometric brownian motion modelling the price of tokens A and B in USD.
+    Geometric brownian motion modelling the price of two tokens in USD
+
+    Notes
+    -----
+
     We assume that token B is some stablecoin so its price remains constant.
     """
 
@@ -51,10 +61,12 @@ class Gbm:
 
     def update(self, rng: np.random.Generator, price_impact: float):
         """
-        Update Gbm:
+        Update Gbm
+
+        Update GBM price using:
+
         - P^a_{t+dt} = P^a_t * exp((mu-0.5*sigma^2)dt + sigma * (W_{t+dt} - W_{t}))
         - P^b is constant
-
         """
         z = rng.normal()
         new_price_a = self.token_a_price * np.exp(
@@ -138,12 +150,18 @@ class BaseUniswapAgent:
         exact: bool = True,
     ):
         """
+        Get swap parameters to match target price
+
         Gets the swap parameters so that, after the swap, the price in Uniswap
         is the same as the target price. We know that in
         Uniswap v2 (or v3 if there is not a tick range change), we have
         :math:`L = \\frac{\\Delta y}{\\Delta \\sqrt{P}}` where y is the
         numeraire (in our case the debt asset), and P is the price of the
         collateral in terms of the numeraire.
+
+        References
+        ----------
+
         Ref: https://atiselsts.github.io/pdfs/uniswap-v3-liquidity-math.pdf
         """
 
@@ -212,6 +230,8 @@ class BaseUniswapAgent:
         exact: bool = True,
     ):
         """
+        Get swap parameters to match target price
+
         Gets the swap parameters so that, after the swap, the price in
         Uniswap is the same as the target price. We
         know that in Uniswap v3 (or v2), we have
@@ -279,6 +299,8 @@ class BaseUniswapAgent:
 
 class UniswapAgent(BaseUniswapAgent):
     """
+    Base agent that makes trades in Uniswap
+
     Agent that makes trades in Uniswap and the external market in order
     to make arbitrage.
     """

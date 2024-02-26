@@ -1,3 +1,8 @@
+"""
+ERC20 token utilities
+"""
+
+
 def mint_and_approve_dai(
     env,
     dai_abi,

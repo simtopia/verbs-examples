@@ -15,3 +15,4 @@ The full codebase for these examples can be found in
 
    pages/uniswap
    pages/aave
+   pages/reference

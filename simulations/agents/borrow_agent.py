@@ -1,3 +1,6 @@
+"""
+Agent that supplies and borrows tokens from an Aave pool
+"""
 import numpy as np
 import verbs
 

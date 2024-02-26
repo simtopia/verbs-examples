@@ -78,7 +78,7 @@ if __name__ == "__main__":
             n_borrow_agents=args.n_borrow_agents,
             show_progress=False,
         )
-        simulations.utils.postprocessing.save(
+        simulations.utils.post_processing.save(
             batch_results, path="results/sim_aave_uniswap"
         )
     else:

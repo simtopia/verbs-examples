@@ -1,3 +1,6 @@
+"""
+Agent that monitors AAVE borrows and liquidates positions
+"""
 import typing
 
 import numpy as np
