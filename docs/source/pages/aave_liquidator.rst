@@ -1,74 +1,72 @@
-Aave liquidator
+Aave Liquidator
 ================
 
 The structure of the simulation is very similar to the :doc:`/pages/uniswap`,
-so we will focus on the liquidator logic, namely
+so we will focus on the liquidator logic, namely the liquidator agent checks
+whether a liquidation is profitable before making the liquidation call:
 
-    ... the liquidator agent checks whether a liquidation is profitable before making
-    the liquidation call:
+* They check the amount of collateral that they would get by liquidation a
+  fraction of a loan.
 
-    * They check the amount of collateral that they would get by liquidation a
-      fraction of a loan.
+* They check the price of the trade in Uniswap necessary to close the short
+  position in the debt asset.
 
-    * They check the price of the trade in Uniswap necessary to close the short
-      position in the debt asset.
-
-    * If they get a profit after closing their short position in the debt asset,
-      then they make the transaction.
+* If they get a profit after closing their short position in the debt asset,
+  then they make the transaction.
 
 These three steps are coded in the ``accountability()`` method of the :py:class:`LiquidatorAgent`
 
 .. code-block:: python
 
-    def accountability(self, env, liquidation_address, amount: int) -> bool:
-        """
-        Makes the accountability of a liquidation and returns a boolean indicating
-        whether the liquidation is profitable or not
-        """
+   def accountability(self, env, liquidation_address, amount: int) -> bool:
+       """
+       Makes the accountability of a liquidation and returns a boolean indicating
+       whether the liquidation is profitable or not
+       """
 
-        try:
-            liquidation_call_event = self.pool_implementation_abi.liquidationCall.call(
-                env,
-                self.address,
-                self.pool_address,
-                [
-                    self.token_a_address,
-                    self.token_b_address,
-                    liquidation_address,
-                    amount,
-                    True,
-                ],
-            )[1]
-        except verbs.envs.RevertError:
-            return False
+       try:
+           liquidation_call_event = self.pool_implementation_abi.liquidationCall.call(
+               env,
+               self.address,
+               self.pool_address,
+               [
+                   self.token_a_address,
+                   self.token_b_address,
+                   liquidation_address,
+                   amount,
+                   True,
+               ],
+           )[1]
+       except verbs.envs.RevertError:
+           return False
 
-        decoded_liquidation_call_event = (
-            self.pool_implementation_abi.LiquidationCall.decode(
-                liquidation_call_event[-1][1]
-            )
-        )
+       decoded_liquidation_call_event = (
+           self.pool_implementation_abi.LiquidationCall.decode(
+               liquidation_call_event[-1][1]
+           )
+       )
 
-        debt_to_cover = decoded_liquidation_call_event[0]
-        liquidated_collateral_amount = decoded_liquidation_call_event[1]
+       debt_to_cover = decoded_liquidation_call_event[0]
+       liquidated_collateral_amount = decoded_liquidation_call_event[1]
 
-        quote = self.quoter_abi.quoteExactOutputSingle.call(
-            env,
-            self.address,
-            self.quoter_address,
-            [
-                (
-                    self.token_a_address,
-                    self.token_b_address,
-                    debt_to_cover,
-                    self.uniswap_fee,
-                    0,
-                )
-            ],
-        )[0]
-        amount_collateral_from_swap = quote[0]
-        return amount_collateral_from_swap < liquidated_collateral_amount
+       quote = self.quoter_abi.quoteExactOutputSingle.call(
+           env,
+           self.address,
+           self.quoter_address,
+           [
+               (
+                   self.token_a_address,
+                   self.token_b_address,
+                   debt_to_cover,
+                   self.uniswap_fee,
+                   0,
+               )
+           ],
+       )[0]
+       amount_collateral_from_swap = quote[0]
+       return amount_collateral_from_swap < liquidated_collateral_amount
 
-Let's break the code in terms of the actions that the Liquidator takes:
+Let's break down the code in terms of the actions that the Liquidator takes:
 
 * Check the amount of collateral that they would get by liquidation a
   fraction of a loan.
@@ -107,9 +105,9 @@ Let's break the code in terms of the actions that the Liquidator takes:
 
 In the above snippet the agent tries to get the liquidation event by *calling* (and not executing)
 the ``liquidationCall()`` function of the `Aave pool contract <https://etherscan.io/address/0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2#code>`_.
-The :py:meth:`call` function of the ``abi`` object returns the tuple ``(results, logs, gas)``.
+The :py:meth:`verbs.abi.Function.call` function of the ``abi`` object returns the tuple ``(results, logs, gas)``.
 In this case we are interested in inspecting the event ``LiquidationCall``, which
-is the last event returned by the ``liquidationCall()`` function
+is the last event returned by the ``liquidationCall()`` function.
 
 .. tip::
     Events types returned by calling a function can be checked by looking at the solidity code of the contract.
@@ -173,7 +171,7 @@ which are the values the liquidator is interested in.
 
 The next actions that the Liquidator takes are
 
-* check the price of the trade in Uniswap necessary to close the short
+* Check the price of the trade in Uniswap necessary to close the short
   position in the debt asset.
 
 * If they get a profit after closing their short position in the debt asset,
@@ -181,26 +179,26 @@ The next actions that the Liquidator takes are
 
 .. code-block:: python
 
-    def accountability(self, env, liquidation_address, amount: int) -> bool:
+   def accountability(self, env, liquidation_address, amount: int) -> bool:
 
-        ...
+       ...
 
-        quote = self.quoter_abi.quoteExactOutputSingle.call(
-            env,
-            self.address,
-            self.quoter_address,
-            [
-                (
-                    self.token_a_address,
-                    self.token_b_address,
-                    debt_to_cover,
-                    self.uniswap_fee,
-                    0,
-                )
-            ],
-        )[0]
-        amount_collateral_from_swap = quote[0]
-        return amount_collateral_from_swap < liquidated_collateral_amount
+       quote = self.quoter_abi.quoteExactOutputSingle.call(
+           env,
+           self.address,
+           self.quoter_address,
+           [
+               (
+                   self.token_a_address,
+                   self.token_b_address,
+                   debt_to_cover,
+                   self.uniswap_fee,
+                   0,
+               )
+           ],
+       )[0]
+       amount_collateral_from_swap = quote[0]
+       return amount_collateral_from_swap < liquidated_collateral_amount
 
 The liquidator is calling the ``quoteExactOutputSingle()`` function of the `Uniswap quoter v2 <https://github.com/Uniswap/v3-periphery/blob/main/contracts/lens/QuoterV2.sol>`_.
 The liquidator retrieves the first value of the output of ``quoteExactOutputSingle()``, as it is
@@ -210,35 +208,34 @@ the values returned by this function:
 
 .. code-block:: json
 
-    "name": "quoteExactOutputSingle",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "amountIn",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint160",
-        "name": "sqrtPriceX96After",
-        "type": "uint160"
-      },
-      {
-        "internalType": "uint32",
-        "name": "initializedTicksCrossed",
-        "type": "uint32"
-      },
-      {
-        "internalType": "uint256",
-        "name": "gasEstimate",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
+  "name": "quoteExactOutputSingle",
+  "outputs": [
+    {
+      "internalType": "uint256",
+      "name": "amountIn",
+      "type": "uint256"
+    },
+    {
+      "internalType": "uint160",
+      "name": "sqrtPriceX96After",
+      "type": "uint160"
+    },
+    {
+      "internalType": "uint32",
+      "name": "initializedTicksCrossed",
+      "type": "uint32"
+    },
+    {
+      "internalType": "uint256",
+      "name": "gasEstimate",
+      "type": "uint256"
+    }
+  ],
+  "stateMutability": "nonpayable",
+  "type": "function"
 
-The liquidation is profitable if the amount of collateral tokens received by the liquidation,
+The liquidation is profitable if the amount of collateral tokens received from the liquidation,
 (``liquidated_collateral_amount``), is greater than the amount of collateral token spent in the
 swap (``amount_collateral_from_swap``) to recover the amount debt tokens spent in the liquidation.
 
-Full implementation of the Liquidator agent is `here <https://github.com/simtopia/verbs-examples/blob/main/simulations/agents/liquidation_agent.py>`_.
+Full implementation of the Liquidator agent is `here <https://github.com/simtopia/verbs-examples/blob/main/simulations/agents/liquidation_agent.py>`__.
