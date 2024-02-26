@@ -1,17 +1,13 @@
-VERBS simulations
-==================
+VERBS Example Simulations
+=========================
 
-*Very Efficient Rust Blockchain Simulator*
+Examples of simulations implemented using `VERBS <https://simtopia.github.io/verbs/>`_
 
-Verbs is a Python ABM (agent based modelling) library built
-around a core Rust ABM library.
+We present two simulations demonstrating agents interacting with
+the `Aave <https://aave.com/>`_ and `Uniswap <https://app.uniswap.org/>`_ protocols.
 
-It is designed to allow you to quickly implement agent-based
-simulations of the Ethereum blockchain.
-
-In https://github.com/simtopia/verbs-examples we present two simulations
-with Aave, Uniswap, and several agents interacting with them
-(Uniswap traders, borrowers and liquidators).
+The full codebase for these examples can be found in
+`this repo <https://github.com/simtopia/verbs-examples>`_.
 
 .. toctree::
    :maxdepth: 2

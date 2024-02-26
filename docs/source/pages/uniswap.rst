@@ -1,18 +1,17 @@
 ******************
-Uniswap simulation
+Uniswap Simulation
 ******************
 
-In this example we model an agent that trades between a Uniswap pool and an external market, modelled by a Geometric Brownian Motion, in order
-to make a profit.
+Full code for this simulation can be found at https://github.com/simtopia/verbs-examples/blob/main/uniswap_example.py
+
+In this example we model an agent that trades between a Uniswap pool and an external market (modelled by a Geometric
+Brownian Motion) in order to make a profit.
 
 .. note::
     We consider the Uniswap v3 pool for WETH and DAI with fee 3000.
 
     The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
     external market is modelled by a GBM.
-
-.. note::
-    Full code for this simulation is in https://github.com/simtopia/verbs-examples/blob/main/uniswap_example.py
 
 The goal of the simulation is for the price of Uniswap to follow the price
 in the external market. This happens when a trader makes arbitrage by trading
@@ -28,19 +27,19 @@ Our simulations will obey the following broad structure,
 
 #. Define the EVM simulation environment, see the `VERBS documentation <https://simtopia.github.io/verbs/pages/simulation_environment.html>`_.
 
-#. Prepare the contracts addresses that will be used during the simulation.
+#. Prepare the contract addresses that will be used during the simulation.
 
-    .. tip::
-        Contracts used during the simulation can be either newly deployed contracts, or contracts already deployed.
+   .. tip::
 
-#. Define the agents' behaviour and initialise them.
+      Contracts used during the simulation can be either manually deployed, or can be
+      forked from a live deployment.
+
+#. Define the agents' behaviours and initialise them.
 
 #. Run the simulations.
 
 
 .. toctree::
-    :maxdepth: 2
+   :maxdepth: 2
 
-    uniswap_sim
-    uniswap_cache
-    uniswap_batch_runner
+   uniswap_sim

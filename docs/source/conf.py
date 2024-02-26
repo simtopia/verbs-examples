@@ -1,4 +1,4 @@
-project = "VERBS simulations"
+project = "VERBS Examples"
 copyright = "2023, Simtopia"
 author = "Simtopia"
 
@@ -37,7 +37,9 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/doc/stable", None),
     "pandas": ("https://pandas.pydata.org/docs/", None),
+    "verbs": ("https://simtopia.github.io/verbs/", None),
 }
 
+html_title = "VERBS Examples"
 html_theme = "furo"
 html_show_sourcelink = False
