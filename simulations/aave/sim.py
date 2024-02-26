@@ -82,6 +82,7 @@ def runner(
     sigma: float = 0.3,
     adversarial_liquidator: bool = False,
     uniswap_agent_type=UniswapAgent,
+    show_progress: bool = True,
 ):
 
     # Use uniswap_factory contract to get the address of WETH-DAI pool
@@ -287,7 +288,7 @@ def runner(
     agents = [uniswap_agent] + borrow_agents + [liquidation_agent]
 
     runner = verbs.sim.Sim(seed, env, agents)
-    results = runner.run(n_steps=n_steps)
+    results = runner.run(n_steps=n_steps, show_progress=show_progress)
 
     return results
 

@@ -463,7 +463,7 @@ class DummyUniswapAgent(UniswapAgent):
         dt: float,
         sim_n_steps: int,
     ):
-        # calibrate mu and sigma in order to explore Uniswap pool
+        # Calibrate mu and sigma in order to explore Uniswap pool
         # storage values for simulation
         super().__init__(
             env=env,
@@ -477,8 +477,8 @@ class DummyUniswapAgent(UniswapAgent):
             fee=fee,
             token_a_address=token_a_address,
             token_b_address=token_b_address,
-            mu=0.3,
-            sigma=0.6,
+            mu=mu,
+            sigma=sigma,
             dt=dt,
         )
         self.sim_n_steps = sim_n_steps
