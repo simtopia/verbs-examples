@@ -9,7 +9,9 @@ import pandas as pd
 
 
 def save(batch_results: List[List[Tuple[int, int]]], path: str):
-
+    """
+    Save batch simulation results to parquet
+    """
     if not os.path.exists(path):
         os.makedirs(path)
 

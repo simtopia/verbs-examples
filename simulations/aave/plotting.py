@@ -12,6 +12,16 @@ def plot_results(
     results: List[List[Tuple]],
     n_borrow_agents: int,
 ):
+    """
+    Plot results from the Aave simulation
+
+    Parameters
+    ----------
+    results: list[list[tuple]]
+        List of results
+    n_borrow_agents: int
+        Number of borrow agents in the sim
+    """
     n_steps = len(results)
     records_uniswap_agent = [x[0] for x in results]
     records_borrow_agents = [x[1 : (1 + n_borrow_agents)] for x in results]

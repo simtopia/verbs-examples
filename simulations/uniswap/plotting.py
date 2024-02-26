@@ -1,3 +1,6 @@
+"""
+Simulation data plotting utilities
+"""
 import os
 from typing import List, Tuple
 
@@ -6,6 +9,9 @@ import numpy as np
 
 
 def plot_results(results: List[List[Tuple[int, int]]]):
+    """
+    Plot simulation results
+    """
     n_steps = len(results)
     prices = np.array(results).reshape(n_steps, 2)
 

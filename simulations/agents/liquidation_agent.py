@@ -1,5 +1,5 @@
 """
-Agent that monitors AAVE borrows and liquidates positions
+Agent that monitors Aave borrower positions and liquidates them
 """
 import typing
 
@@ -8,6 +8,10 @@ import verbs
 
 
 class LiquidationAgent:
+    """
+    Agent that monitors Aave borrowers and liquidate positions
+    """
+
     def __init__(
         self,
         env,
@@ -65,6 +69,8 @@ class LiquidationAgent:
 
     def accountability(self, env, liquidation_address, amount: int) -> bool:
         """
+        Calculates if a liquidation is profitable
+
         Makes the accountability of a liquidation and returns a boolean indicating
         whether the liquidation is profitable or not
         """
@@ -113,6 +119,9 @@ class LiquidationAgent:
         return amount_collateral_from_swap < liquidated_collateral_amount
 
     def update(self, rng: np.random.Generator, env):
+        """
+        Update the state of the agent
+        """
         current_balance_collateral_asset = self.mintable_erc20_abi.balanceOf.call(
             env,
             self.address,
@@ -197,7 +206,9 @@ class LiquidationAgent:
         return tx
 
     def record(self, env):
-
+        """
+        Record the state of the agent
+        """
         current_balance_collateral_asset = self.mintable_erc20_abi.balanceOf.call(
             env,
             self.address,
@@ -222,6 +233,10 @@ class LiquidationAgent:
 
 
 class AdversarialLiquidationAgent(LiquidationAgent):
+    """
+    Liquidation agent that manipulates borrower positions via Uniswap
+    """
+
     def __init__(
         self,
         env,
@@ -273,7 +288,9 @@ class AdversarialLiquidationAgent(LiquidationAgent):
         )[0][0]
 
     def accountability(self, env, liquidation_address, amount: int) -> bool:
-
+        """
+        Calculates if a liquidation is profitable
+        """
         if self.balance_debt_asset[-2] < self.balance_debt_asset[-1]:
             # The agents is long on the debt asset.
             # That means they have done a front-run trade
@@ -283,7 +300,9 @@ class AdversarialLiquidationAgent(LiquidationAgent):
             return super().accountability(env, liquidation_address, amount)
 
     def update(self, rng: np.random.Generator, env):
-
+        """
+        Update the state of the agent
+        """
         # liquidation transactions + closing short collateral position on Uniswap
         tx = super().update(rng, env)
 

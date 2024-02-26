@@ -92,6 +92,10 @@ class Gbm:
 
 
 class BaseUniswapAgent:
+    """
+    Base agent that makes trades in Uniswap
+    """
+
     def __init__(
         self,
         env,
@@ -299,7 +303,7 @@ class BaseUniswapAgent:
 
 class UniswapAgent(BaseUniswapAgent):
     """
-    Base agent that makes trades in Uniswap
+    Agent that makes trades in Uniswap
 
     Agent that makes trades in Uniswap and the external market in order
     to make arbitrage.
@@ -426,6 +430,9 @@ class UniswapAgent(BaseUniswapAgent):
             return []
 
     def record(self, env):
+        """
+        Record the state of the agent
+        """
         # Get sqrt price from uniswap pool. Uniswap returns price of
         # token0 in terms of token1
         sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap(env)
@@ -446,6 +453,8 @@ class UniswapAgent(BaseUniswapAgent):
 
     def get_price_impact_in_external_market(self, env) -> float:
         """
+        Estimate trade impact
+
         We assume that a trade in Uniswap has transient impact
         on the external exchange
         """
@@ -460,6 +469,8 @@ class UniswapAgent(BaseUniswapAgent):
 
 class DummyUniswapAgent(UniswapAgent):
     """
+    Dummy uniswap agent used for cache generation
+
     Dummy Uniswap agent that queries the EVM database
     for a wide range of Uniswap ticks.
     Useful to initialise the cache of a simulation
@@ -507,6 +518,8 @@ class DummyUniswapAgent(UniswapAgent):
 
     def update(self, rng: np.random.Generator, env):
         """
+        Update the state of the agent
+
         Makes an exploratory update by manually changing
         the drift of the external market
         """

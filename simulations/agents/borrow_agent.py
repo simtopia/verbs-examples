@@ -6,6 +6,10 @@ import verbs
 
 
 class BorrowAgent:
+    """
+    Agent that supplies and borrows tokens from an Aave pool
+    """
+
     def __init__(
         self,
         env,
@@ -48,6 +52,9 @@ class BorrowAgent:
         self.step = 0
 
     def update(self, rng: np.random.Generator, env):
+        """
+        Update the state of the agent
+        """
         self.step += 1
 
         if rng.random() < self.activation_rate:
@@ -91,7 +98,9 @@ class BorrowAgent:
             return []
 
     def record(self, env):
-        """Record the state of the agent"""
+        """
+        Record the state of the agent
+        """
         user_data = self.pool_implementation_abi.getUserAccountData.call(
             env, self.address, self.pool_address, [self.address]
         )[0]
