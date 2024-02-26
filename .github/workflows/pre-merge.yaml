@@ -12,6 +12,7 @@ jobs:
           python-version: '3.11'
       - run: pip install hatch
       - run: hatch run dev:lint
+
   test_examples:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
@@ -31,3 +32,17 @@ jobs:
       - run: hatch run examples:aave --seed 808
       - run: hatch run examples:aave --seed 909
       - run: hatch run examples:aave --seed 1010 --batch_runner
+
+  python_docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install hatch 🐣
+        run: pip install hatch
+      - name: Install verbs-examples and build docs 📚
+        run: hatch run sphinx:build
+      - name: Test doc examples
+        run: hatch run sphinx:test
