@@ -63,3 +63,4 @@ dependencies = [
 
 [tool.hatch.envs.sphinx.scripts]
 build = "sphinx-build -W -b html docs/source docs/build"
+test = "sphinx-build -W -b doctest docs/source docs/build"
