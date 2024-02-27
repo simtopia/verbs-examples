@@ -1,3 +1,6 @@
+"""
+Data processing utilities
+"""
 import os
 from functools import reduce
 from typing import List, Tuple
@@ -6,7 +9,9 @@ import pandas as pd
 
 
 def save(batch_results: List[List[Tuple[int, int]]], path: str):
-
+    """
+    Save batch simulation results to parquet
+    """
     if not os.path.exists(path):
         os.makedirs(path)
 

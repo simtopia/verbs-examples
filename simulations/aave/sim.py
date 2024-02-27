@@ -2,41 +2,43 @@
 In this example we consider the interaction between Aave and Uniswap
 via the following agents:
 
-    1. A `Uniswap Agent` that trades between a Uniswap pool and
-       an external market, modelled by a Geometric Brownian Motion,
-       in order to make a profit.
+1. A `Uniswap Agent` that trades between a Uniswap pool and
+   an external market, modelled by a Geometric Brownian Motion,
+   in order to make a profit.
 
-    2. Several `Borrow Agents` that borrow from an Aave v3 pool.
+2. Several `Borrow Agents` that borrow from an Aave v3 pool.
 
-    3. A `Liquidation Agent` that liquidated those positions from the
-       `Borrow agents` that are in distress (that is, that their Health
-       Factors are < 1) as long as the liquidation is profitable for
-       the liquidation agent.
+3. A `Liquidation Agent` that liquidated those positions from the
+   `Borrow agents` that are in distress (that is, that their Health
+   Factors are < 1) as long as the liquidation is profitable for
+   the liquidation agent.
 
 We consider the following pools and tokens:
 
-    - Uniswap v3 pool for WETH and DAI with fee 3000.
+- Uniswap v3 pool for WETH and DAI with fee 3000.
 
-    - `Borrow agents` borrow DAI and deposit WETH as collateral.
+- `Borrow agents` borrow DAI and deposit WETH as collateral.
 
-    - The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
-      external market is modelled by a GBM.
+- The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
+    external market is modelled by a GBM.
 
-    - The price of Uniswap follows the price in the external
-      market. The Uniswap agent allows that by making the right trade in each step
-      so that the new Uniswap price is the same as the price in the external market.
+- The price of Uniswap follows the price in the external
+  market. The Uniswap agent allows that by making the right trade in each step
+  so that the new Uniswap price is the same as the price in the external market.
 
-    - The liquidator agent checks whether a liquidation is profitable before making
-      the liquidation call:
-        - They check the amount of collateral that they would get by liquidation a
-          fraction of a loan.
-        - They check the price of the trade in Uniswap necessary to close the short
-          position in the debt asset.
-        - If they get a profit after closing their short position in the debt asset,
-          then they make the transaction.
+- The liquidator agent checks whether a liquidation is profitable before making
+  the liquidation call:
 
+  - They check the amount of collateral that they would get by liquidation a
+    fraction of a loan.
+  - They check the price of the trade in Uniswap necessary to close the short
+    position in the debt asset.
+  - If they get a profit after closing their short position in the debt asset,
+    then they make the transaction.
 
-Reference: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
+References
+----------
+https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
 """
 
 import json
@@ -82,8 +84,36 @@ def runner(
     sigma: float = 0.3,
     adversarial_liquidator: bool = False,
     uniswap_agent_type=UniswapAgent,
+    show_progress: bool = True,
 ):
+    """
+    Aave simulation runner
 
+    Parameters
+    ----------
+    env
+        Simulation environment
+    seed: int
+        Random seed
+    n_steps: int
+        Number of simulation steps
+    n_borrow_agents: int
+        Number of simulated borrow agents
+    mu: float, optional
+        GBM mu parameter, default 0.0
+    sigma: float, optional
+        GBM sigma parameter, default 0.3
+    adversarial_liquidator: bool, optional
+        If ``True`` simulation will use an adversarial liquidator
+        default ``False``
+    show_progress: bool, optional
+        If ``True`` simulation progress will be printed
+
+    Returns
+    -------
+    list
+        List of agent states recorded over the simulation
+    """
     # Use uniswap_factory contract to get the address of WETH-DAI pool
     fee = 3000
 
@@ -113,6 +143,9 @@ def runner(
     # -------------------------
     # Initialize Uniswap agent
     # -------------------------
+    uniswap_agent_type = (
+        partial(DummyUniswapAgent, sim_n_steps=n_steps) if init_cache else UniswapAgent
+    )
     uniswap_agent = uniswap_agent_type(
         env=env,
         dt=0.01,
@@ -284,7 +317,7 @@ def runner(
     agents = [uniswap_agent] + borrow_agents + [liquidation_agent]
 
     runner = verbs.sim.Sim(seed, env, agents)
-    results = runner.run(n_steps=n_steps)
+    results = runner.run(n_steps=n_steps, show_progress=show_progress)
 
     return results
 
@@ -298,7 +331,29 @@ def init_cache(
     mu: float = 0.1,
     sigma: float = 0.6,
 ):
+    """
+    Generate a simulation request cache
 
+    Run a simulation from a fork and store a cache of
+    data request foe use in other simulations.
+
+    Parameters
+    ----------
+    key: str
+        Alchemy API key
+    block_number: int
+        Block number to fork from
+    seed: int
+        Random seed
+    n_steps: int
+        Number of simulation steps
+    n_borrow_agents: int
+        Number of simulated borrow agents
+    mu: float, optional
+        GBM mu parameter, default 0.1
+    sigma: float, optional
+        GBM sigma parameter, default 0.6
+    """
     # Fork environment from mainnet
     env = verbs.envs.ForkEnv(
         "https://eth-mainnet.g.alchemy.com/v2/{}".format(key),

@@ -1,15 +1,17 @@
 """
+Uniswap simulation implementation
+
 In this example we model an agent that trades between a Uniswap pool and
 and an external market, modelled by a Geometric Brownian Motion, in order
 to make a profit.
 
-    - We consider the Uniswap v3 pool for WETH and DAI with fee 3000.
-    - The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
-      external market is modelled by a GBM.
-    - The goal of the simulation is for the price of Uniswap to follow the price
-      in the external market. The Uniswap agent takes of that in each step, by
-      making the right trade so that the new Uniswap price is the same as the
-      price in the external market.
+- We consider the Uniswap v3 pool for WETH and DAI with fee 3000.
+- The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
+  external market is modelled by a GBM.
+- The goal of the simulation is for the price of Uniswap to follow the price
+  in the external market. The Uniswap agent takes of that in each step, by
+  making the right trade so that the new Uniswap price is the same as the
+  price in the external market.
 """
 
 import json
@@ -42,6 +44,7 @@ def runner(
     mu: float = 0.0,
     sigma: float = 0.3,
     uniswap_agent_type=UniswapAgent,
+    show_progress=True,
 ):
 
     # Convert addresses
@@ -69,6 +72,10 @@ def runner(
     # ------------------------
     # Initialize Uniswap agent
     # ------------------------
+    uniswap_agent_type = (
+        partial(DummyUniswapAgent, sim_n_steps=n_steps) if init_cache else UniswapAgent
+    )
+
     agent = uniswap_agent_type(
         env=env,
         dt=0.01,
@@ -112,7 +119,7 @@ def runner(
     #   and the price of Uniswap.
     agents = [agent]
     runner = verbs.sim.Sim(seed, env, agents)
-    results = runner.run(n_steps=n_steps)
+    results = runner.run(n_steps=n_steps, show_progress=show_progress)
 
     return results
 

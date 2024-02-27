@@ -1,3 +1,7 @@
+"""
+Contract ABI definitions and customised contracts
+"""
+
 from pathlib import Path
 
 from verbs import abi

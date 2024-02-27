@@ -1,3 +1,8 @@
+"""
+ERC20 token utilities
+"""
+
+
 def mint_and_approve_dai(
     env,
     dai_abi,
@@ -7,7 +12,9 @@ def mint_and_approve_dai(
     recipient: bytes,
     amount: int,
 ):
-
+    """
+    Mint and approve DAI tokens
+    """
     dai_abi.mint.execute(
         address=dai_address,
         sender=dai_admin_address,
@@ -31,6 +38,9 @@ def mint_and_approve_weth(
     contract_approved_address: bytes,
     amount: int,
 ):
+    """
+    Mint and approve WETH tokens
+    """
     weth_abi.deposit.execute(
         address=weth_address,
         args=[],
