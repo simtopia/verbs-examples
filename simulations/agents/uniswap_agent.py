@@ -348,16 +348,16 @@ class UniswapAgent(BaseUniswapAgent):
         sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap(env)
 
         if self.token_b == self.token1_address:
-            token_a_price = (sqrt_price_uniswap_x96 / 2**96) ** 2
+            self.init_token_a_price = (sqrt_price_uniswap_x96 / 2**96) ** 2
             token_b_price = 1
         else:
-            token_a_price = (2**96 / sqrt_price_uniswap_x96) ** 2
+            self.init_token_a_price = (2**96 / sqrt_price_uniswap_x96) ** 2
             token_b_price = 1
 
         self.external_market = Gbm(
             mu=mu,
             sigma=sigma,
-            token_a_price=token_a_price,
+            token_a_price=self.init_token_a_price,
             token_b_price=token_b_price,
             dt=dt,
         )
@@ -511,10 +511,25 @@ class DummyUniswapAgent(UniswapAgent):
             token_a_address=token_a_address,
             token_b_address=token_b_address,
             mu=mu,
-            sigma=sigma,
+            sigma=0,
             dt=dt,
         )
         self.sim_n_steps = sim_n_steps
+
+        # calibrate mu to explore the pool
+        upper_bound_price = 1.7 * self.init_token_a_price
+        lower_bound_price = 0.3 * self.init_token_a_price
+
+        self.mu0 = (
+            1
+            / (dt * float(sim_n_steps // 3))
+            * np.log(upper_bound_price / self.init_token_a_price)
+        )
+        self.mu1 = (
+            1
+            / (dt * sim_n_steps - dt * float(sim_n_steps // 3))
+            * np.log(lower_bound_price / upper_bound_price)
+        )
 
     def update(self, rng: np.random.Generator, env):
         """
@@ -523,7 +538,9 @@ class DummyUniswapAgent(UniswapAgent):
         Makes an exploratory update by manually changing
         the drift of the external market
         """
+        if self.step < self.sim_n_steps // 3:
+            self.external_market.mu = self.mu0
+        else:
+            self.external_market.mu = self.mu1
         tx = super().update(rng, env)
-        if self.step in [self.sim_n_steps // 4, 3 * self.sim_n_steps // 4]:
-            self.external_market.mu = -self.external_market.mu
         return tx

@@ -72,10 +72,6 @@ def runner(
     # ------------------------
     # Initialize Uniswap agent
     # ------------------------
-    uniswap_agent_type = (
-        partial(DummyUniswapAgent, sim_n_steps=n_steps) if init_cache else UniswapAgent
-    )
-
     agent = uniswap_agent_type(
         env=env,
         dt=0.01,
