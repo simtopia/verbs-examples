@@ -1,7 +1,7 @@
 """
 Agent that monitors Aave borrower positions and liquidates them
 """
-import typing
+from typing import List, Tuple
 
 import numpy as np
 import verbs
@@ -16,20 +16,61 @@ class LiquidationAgent:
         self,
         env,
         i: int,
-        pool_implementation_abi,
-        mintable_erc20_abi,
+        pool_implementation_abi: type,
+        mintable_erc20_abi: type,
         pool_address: bytes,
         token_a_address: bytes,
         token_b_address: bytes,
-        liquidation_addresses: typing.List,
-        uniswap_pool_abi,
-        quoter_abi,
-        swap_router_abi,
+        liquidation_addresses: List[bytes],
+        uniswap_pool_abi: type,
+        quoter_abi: type,
+        swap_router_abi: type,
         uniswap_pool_address: bytes,
         quoter_address: bytes,
         swap_router_address: bytes,
         uniswap_fee: int,
     ):
+        """
+        Initialise the Liquidator agent and create the corresponding
+        account in the EVM.
+
+        The agent stores the ABIs of the Aave contracts, the Uniswap contracts
+        and the token contracts that they will be interacting with.
+        ABIs are previously loaded using the function `:py:func:verbs.abi.load_abi`.
+
+        Parameters
+        ----------
+        env: verbs.types.Env
+            Simulation environment
+        i: int
+            Agent index in the simulation
+        pool_implementation_abi: type
+            abi of the Aave v3 pool contract
+        mintable_erc20_abi: type
+            abi of ERC20 contract
+        pool_address: bytes
+            Addres of Aave v3 pool contract
+        token_a_address: bytes
+            Address of collateral token (usually the risky token)
+        token_b_address: bytes
+            Address of debt token (usually the less risky token)
+        liquidation_addresses: List[bytes]
+            List of borrowers' addresses that the liquidator will be monitoring.
+        uniswap_pool_abi: type
+            abi of the Uniswap v3 pool contract
+        quoter_abi: type
+            abi of the Uniswap v3 QuoterV2 contract
+        swap_router_abi: type
+            abi of the Uniswap v3 SwapRouter contract
+        uniswap_pool_address: bytes
+            Addres of Uniswap v3 pool for the pair (token_a, token_b)
+        quoter_address: bytes
+            Address of the QuoterV2 contract
+        swap_router_address: bytes
+            Address of the SwapRouter contract
+        uniswap_fee: int
+            Fee tier of the Uniswap v3 pool for the pair (token_a, token_b)
+        """
         self.address = verbs.utils.int_to_address(i)
         env.create_account(self.address, int(1e35))
 
@@ -73,6 +114,21 @@ class LiquidationAgent:
 
         Makes the accountability of a liquidation and returns a boolean indicating
         whether the liquidation is profitable or not
+
+        Parameters
+        ----------
+        env: verbs.types.Env
+            Simulation environment.
+        liquidation_address: bytes
+            Liquidation address for which the Liquidator calculates the profitability
+            of the liquidation.
+        amount: int
+            Amount to be liquidated
+
+        Returns
+        -------
+        is_profitable: bool
+            Profitability of the liquidation
         """
 
         try:
@@ -118,9 +174,31 @@ class LiquidationAgent:
         amount_collateral_from_swap = quote[0]
         return amount_collateral_from_swap < liquidated_collateral_amount
 
-    def update(self, rng: np.random.Generator, env):
+    def update(self, rng: np.random.Generator, env) -> List[verbs.types.Transaction]:
         """
-        Update the state of the agent
+        Update the state of the agent and returns
+        list of transactions according to their policy.
+
+        The liquidator agent will
+        * Liquidate positions in Aave that are in distress
+        * Realize a profit on Uniswap by selling the collateral
+          obtained from liquidations
+
+        Parameters
+        ----------
+        rng: np.random.Generator
+            Numpy random generator, used for any random sampling
+            to ensure determinism of the simulation.
+        env: verbs.types.Env
+            Network/EVM that the simulation interacts with.
+
+        Returns
+        -------
+        list[Transaction]
+            List of transactions to be processed in the next block
+            of the simulation. This can be an empty list if the
+            agent is not submitting any transacti
+
         """
         current_balance_collateral_asset = self.mintable_erc20_abi.balanceOf.call(
             env,
@@ -205,9 +283,26 @@ class LiquidationAgent:
 
         return tx
 
-    def record(self, env):
+    def record(self, env) -> Tuple[float, float]:
         """
         Record the state of the agent
+
+        This method is called at the end of each step for all agents.
+        It should return any data to be recorded over the course
+        of the simulation.
+
+        Parameters
+        ----------
+        env: verbs.types.Env
+            Network/EVM that the simulation interacts with.
+
+        Returns
+        -------
+        current_balance_collateral_asset: float
+            Balance of collateral asset in the current step.
+        current_balance_debt_asset: float
+            Balance of debt asset in the current step.
+
         """
         current_balance_collateral_asset = self.mintable_erc20_abi.balanceOf.call(
             env,
@@ -234,29 +329,76 @@ class LiquidationAgent:
 
 class AdversarialLiquidationAgent(LiquidationAgent):
     """
-    Liquidation agent that manipulates borrower positions via Uniswap
+    Liquidation agent that manipulates the price in Uniswap
+    to bring borrowers positions to distress
     """
 
     def __init__(
         self,
         env,
         i: int,
-        pool_implementation_abi,
-        mintable_erc20_abi,
+        pool_implementation_abi: type,
+        mintable_erc20_abi: type,
         pool_address: bytes,
         token_a_address: bytes,
         token_b_address: bytes,
-        liquidation_addresses: typing.List,
-        uniswap_pool_abi,
-        quoter_abi,
+        liquidation_addresses: List,
+        uniswap_pool_abi: type,
+        quoter_abi: type,
         swap_router_abi,
         uniswap_pool_address: bytes,
         quoter_address: bytes,
         swap_router_address: bytes,
         uniswap_fee: int,
-        aave_oracle_abi,
+        aave_oracle_abi: type,
         aave_oracle_address: bytes,
     ):
+        """
+        Initialise the Liquidator agent and create the corresponding
+        account in the EVM.
+
+        The agent stores the ABIs of the Aave contracts, the Uniswap contracts
+        and the token contracts that they will be interacting with.
+        ABIs are previously loaded using the function `:py:func:verbs.abi.load_abi`.
+
+        Parameters
+        ----------
+        env: verbs.types.Env
+            Simulation environment
+        i: int
+            Agent index in the simulation
+        pool_implementation_abi: type
+            abi of the Aave v3 pool contract
+        mintable_erc20_abi: type
+            abi of ERC20 contract
+        pool_address: bytes
+            Addres of Aave v3 pool contract
+        token_a_address: bytes
+            Address of collateral token (usually the risky token)
+        token_b_address: bytes
+            Address of debt token (usually the less risky token)
+        liquidation_addresses: List[bytes]
+            List of borrowers' addresses that the liquidator will be monitoring.
+        uniswap_pool_abi: type
+            abi of the Uniswap v3 pool contract
+        quoter_abi: type
+            abi of the Uniswap v3 QuoterV2 contract
+        swap_router_abi: type
+            abi of the Uniswap v3 SwapRouter contract
+        uniswap_pool_address: bytes
+            Addres of Uniswap v3 pool for the pair (token_a, token_b)
+        quoter_address: bytes
+            Address of the QuoterV2 contract
+        swap_router_address: bytes
+            Address of the SwapRouter contract
+        uniswap_fee: int
+            Fee tier of the Uniswap v3 pool for the pair (token_a, token_b)
+        aave_oracle_abi: type
+            abi of the Aave oracle contract for the pair (token_a, token_b)
+        aave_oracle_address: bytes
+            Address of the Aave oracle contract for the pair (token_a, token_b)
+
+        """
         super().__init__(
             env,
             i,
@@ -290,6 +432,24 @@ class AdversarialLiquidationAgent(LiquidationAgent):
     def accountability(self, env, liquidation_address, amount: int) -> bool:
         """
         Calculates if a liquidation is profitable
+
+        Makes the accountability of a liquidation and returns a boolean indicating
+        whether the liquidation is profitable or not
+
+        Parameters
+        ----------
+        env: verbs.types.Env
+            Simulation environment.
+        liquidation_address: bytes
+            Liquidation address for which the Liquidator calculates the profitability
+            of the liquidation.
+        amount: int
+            Amount to be liquidated
+
+        Returns
+        -------
+        is_profitable: bool
+            Profitability of the liquidation
         """
         if self.balance_debt_asset[-2] < self.balance_debt_asset[-1]:
             # The agents is long on the debt asset.
@@ -301,7 +461,36 @@ class AdversarialLiquidationAgent(LiquidationAgent):
 
     def update(self, rng: np.random.Generator, env):
         """
-        Update the state of the agent
+        Update the state of the agent and returns
+        list of transactions according to their policy.
+
+        The liquidator agent will
+        * Monitor those positions in Aave that are close to being
+          in distress, and check whether it would be profitable
+          to make a trade in Uniswap to decrease the
+          price of collateral in order to trigger liquidations
+        * Liquidate positions in Aave that are in distress
+        * Realize a profit on Uniswap by selling the collateral
+          obtained from liquidations
+
+        .. note::
+            See https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
+
+        Parameters
+        ----------
+        rng: np.random.Generator
+            Numpy random generator, used for any random sampling
+            to ensure determinism of the simulation.
+        env: verbs.types.Env
+            Network/EVM that the simulation interacts with.
+
+        Returns
+        -------
+        list[Transaction]
+            List of transactions to be processed in the next block
+            of the simulation. This can be an empty list if the
+            agent is not submitting any transacti
+
         """
         # liquidation transactions + closing short collateral position on Uniswap
         tx = super().update(rng, env)

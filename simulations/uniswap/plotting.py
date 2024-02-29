@@ -10,7 +10,19 @@ import numpy as np
 
 def plot_results(results: List[List[Tuple[int, int]]]):
     """
-    Plot simulation results
+    Plot results from the Uniswap example simulation for a single seed.
+
+    Will generate the following plots:
+    * Uniswap price of token0 in terms of token1
+    * External market price of token0 in terms of token1
+
+    Plots are saved in results/sim_uniswap_gbm
+
+    Parameters
+    ----------
+    results: list[list[tuple[int, int]]]
+        List of results
+
     """
     n_steps = len(results)
     prices = np.array(results).reshape(n_steps, 2)
@@ -21,6 +33,6 @@ def plot_results(results: List[List[Tuple[int, int]]]):
 
     fig, ax = plt.subplots(figsize=(6, 3))
     ax.plot(prices[:, 0], label="Uniswap price")
-    ax.plot(prices[:, 1], label="External market price")
+    ax.plot(prices[:, 1], "--", label="External market price")
     ax.legend()
     fig.savefig(os.path.join(plot_dir, "prices.pdf"))
