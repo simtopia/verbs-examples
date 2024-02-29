@@ -10,7 +10,7 @@ import numpy as np
 
 def plot_results(results: List[List[Tuple[int, int]]]):
     """
-    Plot results from the Uniswap example simulation for a single seed.
+    Plot results from the Uniswap example simulation for a single seed
 
     Will generate the following plots:
     * Uniswap price of token0 in terms of token1
@@ -20,7 +20,7 @@ def plot_results(results: List[List[Tuple[int, int]]]):
 
     Parameters
     ----------
-    results: list[list[tuple[int, int]]]
+    list[list[tuple[int, int]]]
         List of results
 
     """

@@ -26,7 +26,7 @@ We consider the following:
 .. note::
     Profitablity is checked by the following accountability:
 
-    * They check the amount of collateral that they would get by liquidation a
+    * They check the amount of collateral that they would get by liquidating a
       fraction of a loan.
     * They check the price of the trade in Uniswap necessary to close the short
       position in the debt asset.
@@ -351,7 +351,7 @@ def init_cache(
 
     Returns
     -------
-    cache: verbs.types.Cache
+    verbs.types.Cache
         Cache generated using :py:meth:`verbs.envs.ForkEnv.export_cache`.
     """
     # Fork environment from mainnet

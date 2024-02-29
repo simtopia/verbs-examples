@@ -32,7 +32,7 @@ class BorrowAgent:
 
         The agent stores the ABIs of the Aave contracts and the token
         contracts that they will be interacting with. ABIs are loaded
-        using the function `:py:func:verbs.abi.load_abi`.
+        using the function :py:func:`verbs.abi.load_abi`.
 
         Parameters
         ----------
@@ -105,10 +105,10 @@ class BorrowAgent:
 
         Returns
         -------
-        list[Transaction]
+        list
             List of transactions to be processed in the next block
             of the simulation. This can be an empty list if the
-            agent is not submitting any transacti
+            agent is not submitting any transactions.
 
         """
         self.step += 1

@@ -17,6 +17,7 @@ def plot_results(
     for a single seed.
 
     Will generate the following plots
+
     * Health factor for each Borrower
     * Collateral assets for each Borrower locked in Aave.
     * Debt assets for each Borrower locked in Aave.
