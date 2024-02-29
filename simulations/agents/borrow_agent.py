@@ -97,7 +97,7 @@ class BorrowAgent:
 
         Parameters
         ----------
-        rng: np.random.Generator
+        rng: numpy.random.Generator
             Numpy random generator, used for any random sampling
             to ensure determinism of the simulation.
         env: verbs.types.Env
@@ -168,15 +168,14 @@ class BorrowAgent:
 
         Returns
         -------
-        self.step: int
-            Step of the simulation.
-        health_factor: float
-            Health factor of the borrower's position at the current step.
-        collateral_base: float
-            Collateral value of the borrower's position in the base currency
-            In Aave the base currency is USD and it has 8 decimal places
-        debt_base: float
-            Debt asset value of the borrower's position in the base currency
+        tuple[int, float, float, float]
+            Tuple containing:
+
+            - Step of the simulation.
+            - Health factor of the borrower's position at the current step.
+            - Collateral value of the borrower's position in the base currency
+              In Aave the base currency is USD and it has 8 decimal places
+            - Debt asset value of the borrower's position in the base currency
         """
 
         user_data = self.pool_implementation_abi.getUserAccountData.call(

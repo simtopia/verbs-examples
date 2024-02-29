@@ -23,19 +23,20 @@ We consider the following:
 * The liquidator agent checks whether a liquidation is profitable before making
   the liquidation call.
 
-.. note::
-    Profitablity is checked by the following accountability:
+Notes
+-----
+Profitability is checked by the following accountability:
 
-    * They check the amount of collateral that they would get by liquidating a
-      fraction of a loan.
-    * They check the price of the trade in Uniswap necessary to close the short
-      position in the debt asset.
-    * If they get a profit after closing their short position in the debt asset,
-      then they make the transaction.
+* They check the amount of collateral that they would get by liquidating a
+  fraction of a loan.
+* They check the price of the trade in Uniswap necessary to close the short
+  position in the debt asset.
+* If they get a profit after closing their short position in the debt asset,
+  then they make the transaction.
 
 References
 ----------
-https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
+#. https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
 """
 
 import json

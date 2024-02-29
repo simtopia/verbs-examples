@@ -19,7 +19,7 @@ def tick_from_price(sqrt_price_x96: int, uniswap_fee: int) -> int:
     Parameters
     ----------
     sqrt_price_x96: int
-        Square root of price times 2**96
+        Square root of price times 2\ :sup:`96`
     uniswap_fee: int
         Uniswap fee. Possible values [100,500,3000,10000]
 
@@ -46,7 +46,7 @@ def price_from_tick(tick: int) -> int:
     Returns
     -------
     int
-        Square root of price times 2**96
+        Square root of price times 2\ :sup:`96`
     """
     sqrt_price_x96 = np.sqrt(1.001**tick) * 2**96
     return sqrt_price_x96
@@ -91,7 +91,8 @@ class Gbm:
 
         Update GBM price using:
 
-        * :math:`P^a_{t+dt} = P^a_t * exp((\\mu-0.5*\\sigma^2)dt + \sigma * (W_{t+dt} - W_{t}))`  # noqa E501
+        * :math:`P^a_{t+dt} = P^a_t * exp((\\mu-0.5*\\sigma^2)dt +
+          \sigma * (W_{t+dt} - W_{t}))`
         * :math:`P^{a, impact}_{t+dt} = P^a_{t+dt} + price_impact`
         * :math:`P^b` is constant
 
@@ -125,13 +126,13 @@ class Gbm:
 
         Notes
         -----
-        We return the square root of the price times 2**96 for a fair comparison
+        We return the square root of the price times 2\ :sup:`96` for a fair comparison
         with the price values returned by the Uniswap contract.
 
         Returns
         -------
         float
-            Square root of the price of token A in terms of token B times 2**96
+            Square root of the price of token A in terms of token B times 2\ :sup:`96`
         """
         price = self.token_a_price_with_impact / self.token_b_price
         return np.sqrt(price) * 2**96
@@ -142,13 +143,13 @@ class Gbm:
 
         Notes
         -----
-        We return the square root of the price times 2**96 for a fair comparison
+        We return the square root of the price times 2\ :sup:`96`  for a fair comparison
         with the price values returned by the Uniswap contract.
 
         Returns
         -------
         float
-            Square root of the price of token B in terms of token A times 2**96
+            Square root of the price of token B in terms of token A times 2\ :sup:`96`
         """
         price = self.token_b_price / self.token_a_price_with_impact
         return np.sqrt(price) * 2**96
@@ -251,7 +252,7 @@ class BaseUniswapAgent:
         Returns
         -------
         int
-            Square root of the price times 2**96 of token0 in terms of token1
+            Square root of the price times 2\ :sup:`96` of token0 in terms of token1
         """
 
         slot0 = self.uniswap_pool_abi.slot0.call(
@@ -290,9 +291,9 @@ class BaseUniswapAgent:
         env: verbs.types.Env
             Simulation environment
         sqrt_target_price_x96: int
-            Sqrt of target price times 2**96
+            Sqrt of target price times 2\ :sup:`96`
         sqrt_price_uniswap_x96: int
-            Sqrt of current uniswap price times 2**96
+            Sqrt of current uniswap price times 2\ :sup:`96`
         liquidity: int
             Liquidity of Uniswap in the current tick range
         exact: bool
@@ -391,9 +392,9 @@ class BaseUniswapAgent:
         env: verbs.types.Env
             Simulation environment
         sqrt_target_price_x96: int
-            Sqrt of target price times 2**96
+            Sqrt of target price times 2\ :sup:`96`
         sqrt_price_uniswap_x96: int
-            Sqrt of current uniswap price times 2**96
+            Sqrt of current uniswap price times 2\ :sup:`96`
         liquidity: int
             Liquidity of Uniswap in the current tick range
         exact: bool
@@ -466,7 +467,7 @@ class BaseUniswapAgent:
 class UniswapAgent(BaseUniswapAgent):
     """
     Agent that makes trades in Uniswap and the external market in order
-    to make arbitrage.
+    to make arbitrage
     """
 
     def __init__(
@@ -576,6 +577,7 @@ class UniswapAgent(BaseUniswapAgent):
         list of transactions according to their policy.
 
         The Uniswap agent will
+
         * Check the price in the external market and in the Uniswap pool.
         * Calculate the trade to do in Uniswap in order to realize a profit.
 
@@ -753,7 +755,7 @@ class DummyUniswapAgent(UniswapAgent):
 
         The agent stores the ABIs of the Uniswap contracts
         and the token contracts that they will be interacting with.
-        ABIs are previously loaded using the function `:py:func:verbs.abi.load_abi`.
+        ABIs are previously loaded using the function :py:func:`verbs.abi.load_abi`.
 
         The agent also has access to an external market, modelled by a Gbm,
         that is set as an attribute of the agents.
