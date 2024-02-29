@@ -15,7 +15,7 @@ jobs:
       - name: Install hatch 🐣
         run: pip install hatch
       - name: Build docs 📚
-        run: hatch run docs:build
+        run: hatch run sphinx:build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3.0.0
         with:
@@ -23,6 +23,7 @@ jobs:
 
   publish_docs:
     runs-on: ubuntu-latest
+    needs: [build_docs]
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
       pages: write      # to deploy to Pages
