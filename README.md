@@ -2,6 +2,9 @@
 
 Example models implemented using [VERBS](https://github.com/simtopia/verbs)
 
+Full documentation for these examples can be found
+[here](https://simtopia.github.io/verbs-examples/)
+
 ## Installation & Running
 
 This repo uses [hatch](https://hatch.pypa.io/latest/) for dependency
