@@ -2,39 +2,36 @@
 In this example we consider the interaction between Aave and Uniswap
 via the following agents:
 
-1. A `Uniswap Agent` that trades between a Uniswap pool and
-   an external market, modelled by a Geometric Brownian Motion,
-   in order to make a profit.
+* A `Uniswap Agent` that trades between a Uniswap pool and
+  an external market, modelled by a Geometric Brownian Motion,
+  in order to make a profit.
+* Several `Borrow Agents` that borrow from an Aave v3 pool.
+* A `Liquidation Agent` that liquidated those positions from the
+  `Borrow agents` that are in distress (that is, that their Health
+  Factors are < 1) as long as the liquidation is profitable for
+  the liquidation agent.
 
-2. Several `Borrow Agents` that borrow from an Aave v3 pool.
+We consider the following:
 
-3. A `Liquidation Agent` that liquidated those positions from the
-   `Borrow agents` that are in distress (that is, that their Health
-   Factors are < 1) as long as the liquidation is profitable for
-   the liquidation agent.
-
-We consider the following pools and tokens:
-
-- Uniswap v3 pool for WETH and DAI with fee 3000.
-
-- `Borrow agents` borrow DAI and deposit WETH as collateral.
-
-- The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
-    external market is modelled by a GBM.
-
-- The price of Uniswap follows the price in the external
+* Uniswap v3 pool for WETH and DAI with fee 3000.
+* `Borrow agents` borrow DAI and deposit WETH as collateral.
+* The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
+  external market is modelled by a GBM.
+* The price of Uniswap follows the price in the external
   market. The Uniswap agent allows that by making the right trade in each step
   so that the new Uniswap price is the same as the price in the external market.
+* The liquidator agent checks whether a liquidation is profitable before making
+  the liquidation call.
 
-- The liquidator agent checks whether a liquidation is profitable before making
-  the liquidation call:
+.. note::
+    Profitablity is checked by the following accountability:
 
-  - They check the amount of collateral that they would get by liquidation a
-    fraction of a loan.
-  - They check the price of the trade in Uniswap necessary to close the short
-    position in the debt asset.
-  - If they get a profit after closing their short position in the debt asset,
-    then they make the transaction.
+    * They check the amount of collateral that they would get by liquidation a
+      fraction of a loan.
+    * They check the price of the trade in Uniswap necessary to close the short
+      position in the debt asset.
+    * If they get a profit after closing their short position in the debt asset,
+      then they make the transaction.
 
 References
 ----------
@@ -44,6 +41,7 @@ https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
 import json
 from functools import partial
 from pathlib import Path
+from typing import List
 
 import verbs
 
@@ -85,7 +83,7 @@ def runner(
     adversarial_liquidator: bool = False,
     uniswap_agent_type=UniswapAgent,
     show_progress: bool = True,
-):
+) -> List[List]:
     """
     Aave simulation runner
 
@@ -327,7 +325,7 @@ def init_cache(
     n_borrow_agents: int,
     mu: float = 0.1,
     sigma: float = 0.6,
-):
+) -> verbs.types.Cache:
     """
     Generate a simulation request cache
 
@@ -350,6 +348,11 @@ def init_cache(
         GBM mu parameter, default 0.1
     sigma: float, optional
         GBM sigma parameter, default 0.6
+
+    Returns
+    -------
+    cache: verbs.types.Cache
+        Cache generated using :py:meth:`verbs.envs.ForkEnv.export_cache`.
     """
     # Fork environment from mainnet
     env = verbs.envs.ForkEnv(

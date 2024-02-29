@@ -91,7 +91,7 @@ class Gbm:
         Update GBM price using:
 
         * :math:`P^a_{t+dt} = P^a_t * exp((\\mu-0.5*\\sigma^2)dt + \sigma * (W_{t+dt} - W_{t}))`  # noqa E501
-        * :math:`P^{a, impact}_{t+dt} = P^a_{t+dt} + price_impact
+        * :math:`P^{a, impact}_{t+dt} = P^a_{t+dt} + price_impact`
         * :math:`P^b` is constant
 
         .. note::
@@ -457,8 +457,6 @@ class BaseUniswapAgent:
 
 class UniswapAgent(BaseUniswapAgent):
     """
-    Agent that makes trades in Uniswap
-
     Agent that makes trades in Uniswap and the external market in order
     to make arbitrage.
     """

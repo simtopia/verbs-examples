@@ -180,6 +180,7 @@ class LiquidationAgent:
         list of transactions according to their policy.
 
         The liquidator agent will
+
         * Liquidate positions in Aave that are in distress
         * Realize a profit on Uniswap by selling the collateral
           obtained from liquidations
@@ -198,7 +199,6 @@ class LiquidationAgent:
             List of transactions to be processed in the next block
             of the simulation. This can be an empty list if the
             agent is not submitting any transacti
-
         """
         current_balance_collateral_asset = self.mintable_erc20_abi.balanceOf.call(
             env,
@@ -465,16 +465,17 @@ class AdversarialLiquidationAgent(LiquidationAgent):
         list of transactions according to their policy.
 
         The liquidator agent will
+
         * Monitor those positions in Aave that are close to being
           in distress, and check whether it would be profitable
           to make a trade in Uniswap to decrease the
-          price of collateral in order to trigger liquidations
-        * Liquidate positions in Aave that are in distress
+          price of collateral in order to trigger liquidations.
+        * Liquidate positions in Aave that are in distress.
         * Realize a profit on Uniswap by selling the collateral
-          obtained from liquidations
+          obtained from liquidations.
 
         .. note::
-            See https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
+           See https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
 
         Parameters
         ----------
