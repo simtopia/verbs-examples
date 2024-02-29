@@ -13,7 +13,18 @@ def plot_results(
     n_borrow_agents: int,
 ):
     """
-    Plot results from the Aave simulation
+    Plot results from the Aave example simulation
+    for a single seed.
+
+    Will generate the following plots
+
+    * Health factor for each borrower
+    * Collateral assets for each borrower locked in Aave
+    * Debt assets for each borrower locked in Aave
+    * Collateral assets for the liquidator
+    * Debt assets for the liquidator
+
+    Plots are saved in results/sim_aave_uniswap
 
     Parameters
     ----------

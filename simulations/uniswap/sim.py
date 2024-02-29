@@ -5,18 +5,21 @@ In this example we model an agent that trades between a Uniswap pool and
 and an external market, modelled by a Geometric Brownian Motion, in order
 to make a profit.
 
-- We consider the Uniswap v3 pool for WETH and DAI with fee 3000.
-- The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
+* We consider the Uniswap v3 pool for WETH and DAI with fee 3000.
+* The price of the risky asset (WETH) in terms of the stablecoin (DAI) in the
   external market is modelled by a GBM.
-- The goal of the simulation is for the price of Uniswap to follow the price
-  in the external market. The Uniswap agent takes of that in each step, by
-  making the right trade so that the new Uniswap price is the same as the
-  price in the external market.
+
+The goal of the simulation is for the price of Uniswap to follow the price
+in the external market. The Uniswap agent takes of that in each step, by
+making the right trade so that the new Uniswap price is the same as the
+price in the external market.
+
 """
 
 import json
 from functools import partial
 from pathlib import Path
+from typing import List
 
 import verbs
 
@@ -45,7 +48,33 @@ def runner(
     sigma: float = 0.3,
     uniswap_agent_type=UniswapAgent,
     show_progress=True,
-):
+) -> List[List]:
+    """
+    Uniswap simulation runner
+
+    Parameters
+    ----------
+    env
+        Simulation environment
+    seed: int
+        Random seed
+    n_steps: int
+        Number of simulation steps
+    mu: float, optional
+        GBM mu parameter, default 0.0
+    sigma: float, optional
+        GBM sigma parameter, default 0.3
+    uniswap_agent_type: BaseUniswapAgent, optional
+        Either UniswapAgent or DummyUniswapAgent, depending
+        on wheter the simulation is initialising the Cache or not
+    show_progress: bool, optional
+        If ``True`` simulation progress will be printed
+
+    Returns
+    -------
+    list
+        List of agent states recorded over the simulation
+    """
 
     # Convert addresses
     weth_address = verbs.utils.hex_to_bytes(WETH)
@@ -72,10 +101,6 @@ def runner(
     # ------------------------
     # Initialize Uniswap agent
     # ------------------------
-    uniswap_agent_type = (
-        partial(DummyUniswapAgent, sim_n_steps=n_steps) if init_cache else UniswapAgent
-    )
-
     agent = uniswap_agent_type(
         env=env,
         dt=0.01,
@@ -131,7 +156,33 @@ def init_cache(
     n_steps: int,
     mu: float = 0.1,
     sigma: float = 0.6,
-):
+) -> verbs.types.Cache:
+    """
+    Generate a simulation request cache
+
+    Run a simulation from a fork and store a cache of
+    data request foe use in other simulations.
+
+    Parameters
+    ----------
+    key: str
+        Alchemy API key
+    block_number: int
+        Block number to fork from
+    seed: int
+        Random seed
+    n_steps: int
+        Number of simulation steps
+    mu: float, optional
+        GBM mu parameter, default 0.1
+    sigma: float, optional
+        GBM sigma parameter, default 0.6
+
+    Returns
+    -------
+    cache: verbs.types.Cache
+        Cache generated using :py:meth:`verbs.envs.ForkEnv.export_cache`.
+    """
 
     # Fork environment from mainnet
     env = verbs.envs.ForkEnv(
