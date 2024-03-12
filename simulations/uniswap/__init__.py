@@ -1,4 +1,4 @@
 """
 Uniswap simulation
 """
-from simulations.uniswap import plotting, sim
+from . import plotting, sim
