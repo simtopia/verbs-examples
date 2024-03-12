@@ -23,7 +23,7 @@ from typing import List
 
 import verbs
 
-from simulations import abi
+from simulations import abis
 from simulations.agents import DummyUniswapAgent, UniswapAgent
 from simulations.utils.erc20 import mint_and_approve_dai, mint_and_approve_weth
 
@@ -87,7 +87,7 @@ def runner(
     # pool with fee 3000
     fee = 3000
 
-    pool_address = abi.uniswap_factory.getPool.call(
+    pool_address = abis.uniswap_factory.getPool.call(
         env,
         verbs.utils.ZERO_ADDRESS,
         verbs.utils.hex_to_bytes(UNISWAP_V3_FACTORY),
@@ -108,13 +108,13 @@ def runner(
         i=10,  # idx of agent
         mu=mu,
         sigma=sigma,
-        swap_router_abi=abi.swap_router,
+        swap_router_abi=abis.swap_router,
         swap_router_address=swap_router_address,
         token_a_address=weth_address,
         token_b_address=dai_address,
-        uniswap_pool_abi=abi.uniswap_pool,
+        uniswap_pool_abi=abis.uniswap_pool,
         uniswap_pool_address=pool_address,
-        quoter_abi=abi.quoter,
+        quoter_abi=abis.quoter,
         quoter_address=quoter_address,
     )
 
@@ -123,7 +123,7 @@ def runner(
     # - Approve the Swap Router to use these in their transactions
     mint_and_approve_weth(
         env=env,
-        weth_abi=abi.weth_erc20,
+        weth_abi=abis.weth_erc20,
         weth_address=weth_address,
         recipient=agent.address,
         contract_approved_address=swap_router_address,
@@ -131,7 +131,7 @@ def runner(
     )
     mint_and_approve_dai(
         env=env,
-        dai_abi=abi.dai,
+        dai_abi=abis.dai,
         dai_address=dai_address,
         contract_approved_address=swap_router_address,
         dai_admin_address=dai_admin_address,
