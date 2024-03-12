@@ -6,7 +6,8 @@ from itertools import product
 import verbs
 from verbs.batch_runner import batch_run
 
-import simulations
+from simulations.uniswap import plotting, sim
+from simulations.utils import post_processing
 
 if __name__ == "__main__":
 
@@ -37,21 +38,19 @@ if __name__ == "__main__":
         ]
 
         batch_results = batch_run(
-            simulations.uniswap.sim.runner,
+            sim.runner,
             n_steps=args.n_steps,
             n_samples=10,
             parameters_samples=parameters_samples,
             cache=cache,
             show_progress=False,
         )
-        simulations.utils.post_processing.save(
-            batch_results, path="results/sim_uniswap_gbm"
-        )
+        post_processing.save(batch_results, path="results/sim_uniswap_gbm")
     else:
         # single simulation
         env = verbs.envs.EmptyEnv(args.seed, cache=cache)
 
-        results = simulations.uniswap.sim.runner(
+        results = sim.runner(
             env,
             args.seed,
             args.n_steps,
@@ -59,4 +58,4 @@ if __name__ == "__main__":
             sigma=args.sigma,
             show_progress=True,
         )
-        simulations.uniswap.plotting.plot_results(results)
+        plotting.plot_results(results)

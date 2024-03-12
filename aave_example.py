@@ -6,7 +6,8 @@ from itertools import product
 import verbs
 from verbs.batch_runner import batch_run
 
-import simulations
+from simulations.aave import plotting, sim
+from simulations.utils import post_processing
 
 if __name__ == "__main__":
 
@@ -50,7 +51,7 @@ if __name__ == "__main__":
         assert (
             args.alchemy_key is not None
         ), "Alchemy key required, set with '--alchemy_key' argument"
-        cache = simulations.aave.sim.init_cache(
+        cache = sim.init_cache(
             args.alchemy_key,
             19163600,
             args.seed,
@@ -70,7 +71,7 @@ if __name__ == "__main__":
         ]
 
         batch_results = batch_run(
-            simulations.aave.sim.runner,
+            sim.runner,
             n_steps=args.n_steps,
             n_samples=10,
             parameters_samples=parameters_samples,
@@ -78,14 +79,12 @@ if __name__ == "__main__":
             n_borrow_agents=args.n_borrow_agents,
             show_progress=False,
         )
-        simulations.utils.post_processing.save(
-            batch_results, path="results/sim_aave_uniswap"
-        )
+        post_processing.save(batch_results, path="results/sim_aave_uniswap")
     else:
         # run a single simulation
         env = verbs.envs.EmptyEnv(args.seed, cache=cache)
 
-        results = simulations.aave.sim.runner(
+        results = sim.runner(
             env,
             args.seed,
             args.n_steps,
@@ -95,4 +94,4 @@ if __name__ == "__main__":
             show_progress=True,
         )
 
-        simulations.aave.plotting.plot_results(results, args.n_borrow_agents)
+        plotting.plot_results(results, args.n_borrow_agents)
