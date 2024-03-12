@@ -47,12 +47,13 @@ from typing import List
 import verbs
 
 from simulations import abi
-from simulations.agents.borrow_agent import BorrowAgent
-from simulations.agents.liquidation_agent import (
+from simulations.agents import (
     AdversarialLiquidationAgent,
+    BorrowAgent,
+    DummyUniswapAgent,
     LiquidationAgent,
+    UniswapAgent,
 )
-from simulations.agents.uniswap_agent import DummyUniswapAgent, UniswapAgent
 from simulations.utils.erc20 import mint_and_approve_dai, mint_and_approve_weth
 
 PATH = Path(__file__).parent

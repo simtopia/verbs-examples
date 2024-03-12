@@ -24,7 +24,7 @@ from typing import List
 import verbs
 
 from simulations import abi
-from simulations.agents.uniswap_agent import DummyUniswapAgent, UniswapAgent
+from simulations.agents import DummyUniswapAgent, UniswapAgent
 from simulations.utils.erc20 import mint_and_approve_dai, mint_and_approve_weth
 
 PATH = Path(__file__).parent
