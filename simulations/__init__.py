@@ -2,4 +2,4 @@
 VERBS example simulations
 """
 
-from . import aave, abi, agents, uniswap
+from simulations import aave, abi, agents, uniswap

@@ -2,4 +2,4 @@
 Simulation utilities
 """
 
-from . import post_processing
+from simulations.utils import post_processing
