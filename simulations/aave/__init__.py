@@ -1,5 +1,4 @@
 """
 AAVE protocol simulation
 """
-
-from simulations.aave import plotting, sim
+from . import plotting, sim
