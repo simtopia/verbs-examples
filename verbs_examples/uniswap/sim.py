@@ -164,7 +164,7 @@ def init_cache(
     Generate a simulation request cache
 
     Run a simulation from a fork and store a cache of
-    data request foe use in other simulations.
+    data request for use in other simulations.
 
     Parameters
     ----------

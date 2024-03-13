@@ -26,7 +26,7 @@ to the scripts.
 The package can also be imported to run the simulations, e.g.
 
 ```
-from simulations.aave import sim
+from verbs_examples.aave import sim
 
 ...
 results = run_from_cache(seed, n_steps, n_borrow_agents, sigma)

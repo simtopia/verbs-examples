@@ -15,7 +15,7 @@ jobs:
       - name: Install hatch 🐣
         run: pip install hatch
       - name: Build docs 📚
-        run: hatch run sphinx:build
+        run: hatch run docs:build
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3.0.0
         with:

@@ -1,1 +1,1 @@
-include simulations/abis/*.abi
+include verbs_examples/abis/*.abi

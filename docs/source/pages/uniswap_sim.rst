@@ -126,7 +126,7 @@ trade.
     Nevertheless the above is still useful to simulate a GBM in a Uniswap pool.
 
 The following code provides the above functionality when ``sqrt_price_uniswap_x96 < sqrt_target_price_x96``.
-Full implementation of the agent is `here <https://github.com/simtopia/verbs-examples/blob/main/simulations/agents/uniswap_agent.py>`__,
+Full implementation of the agent is `here <https://github.com/simtopia/verbs-examples/blob/main/verbs_examples/agents/uniswap_agent.py>`__,
 including the external market as a Geometric Brownian Motion.
 
 .. code-block:: python
@@ -237,7 +237,7 @@ contract, hence the agent needs to approve this contract to use their tokens:
        )
 
 where we use the functions ``mint_and_approve_weth`` and ``mint_and_approve_dai``
-defined  `here <https://github.com/simtopia/verbs-examples/blob/main/simulations/utils/erc20.py>`__.
+defined  `here <https://github.com/simtopia/verbs-examples/blob/main/verbs_examples/utils/erc20.py>`__.
 
 Running the Simulation
 =======================
