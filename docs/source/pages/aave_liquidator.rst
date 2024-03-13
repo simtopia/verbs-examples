@@ -238,4 +238,4 @@ The liquidation is profitable if the amount of collateral tokens received from t
 (``liquidated_collateral_amount``), is greater than the amount of collateral token spent in the
 swap (``amount_collateral_from_swap``) to recover the amount debt tokens spent in the liquidation.
 
-Full implementation of the Liquidator agent is `here <https://github.com/simtopia/verbs-examples/blob/main/simulations/agents/liquidation_agent.py>`__.
+Full implementation of the Liquidator agent is `here <https://github.com/simtopia/verbs-examples/blob/main/verbs_examples/agents/liquidation_agent.py>`__.

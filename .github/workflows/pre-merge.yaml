@@ -43,6 +43,6 @@ jobs:
       - name: Install hatch 🐣
         run: pip install hatch
       - name: Install verbs-examples and build docs 📚
-        run: hatch run sphinx:build
+        run: hatch run docs:build
       - name: Test doc examples
-        run: hatch run sphinx:test
+        run: hatch run docs:test
