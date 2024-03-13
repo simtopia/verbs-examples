@@ -6,21 +6,22 @@ from pathlib import Path
 
 from verbs import abi
 
-PATH = Path(__file__).parent
+# PATH = Path(__file__).parent
 
-swap_router = abi.load_abi(f"{PATH}/../abis/SwapRouter.abi")
-dai = abi.load_abi(f"{PATH}/../abis/dai.abi")
-weth_erc20 = abi.load_abi(f"{PATH}/../abis/WETHMintableERC20.abi")
-uniswap_pool = abi.load_abi(f"{PATH}/../abis/UniswapV3Pool.abi")
-uniswap_factory = abi.load_abi(f"{PATH}/../abis/UniswapV3Factory.abi")
+# swap_router = abi.load_abi(f"{PATH}/../abis/SwapRouter.abi")
+# dai = abi.load_abi(f"{PATH}/../abis/dai.abi")
+# weth_erc20 = abi.load_abi(f"{PATH}/../abis/WETHMintableERC20.abi")
+# uniswap_pool = abi.load_abi(f"{PATH}/../abis/UniswapV3Pool.abi")
+# uniswap_factory = abi.load_abi(f"{PATH}/../abis/UniswapV3Factory.abi")
 
-aave_pool = abi.load_abi(f"{PATH}/../abis/Pool-Implementation.abi")
-aave_oracle = abi.load_abi(f"{PATH}/../abis/AaveOracle.abi")
-quoter = abi.load_abi(f"{PATH}/../abis/Quoter_v2.abi")
-uniswap_aggregator = abi.load_abi(f"{PATH}/../abis/UniswapAggregator.abi")
-mock_aggregator = abi.load_abi(f"{PATH}/../abis/MockAggregator.abi")
-aave_pool_addresses_provider = abi.load_abi(f"{PATH}/../abis/PoolAddressesProvider.abi")
-aave_acl_manager = abi.load_abi(f"{PATH}/../abis/ACLManager.abi")
+# aave_pool = abi.load_abi(f"{PATH}/../abis/Pool-Implementation.abi")
+# aave_oracle = abi.load_abi(f"{PATH}/../abis/AaveOracle.abi")
+# quoter = abi.load_abi(f"{PATH}/../abis/Quoter_v2.abi")
+# uniswap_aggregator = abi.load_abi(f"{PATH}/../abis/UniswapAggregator.abi")
+# mock_aggregator = abi.load_abi(f"{PATH}/../abis/MockAggregator.abi")
+# aave_pool_addresses_provider =
+#  abi.load_abi(f"{PATH}/../abis/PoolAddressesProvider.abi")
+# aave_acl_manager = abi.load_abi(f"{PATH}/../abis/ACLManager.abi")
 
 UNISWAP_AGGREGATOR_BYTECODE = (
     "0x608060405234801561001057600080fd5b50604051610886380380610886833981810160405281"
