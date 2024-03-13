@@ -6,8 +6,8 @@ from itertools import product
 import verbs
 from verbs.batch_runner import batch_run
 
-from simulations.uniswap import plotting, sim
-from simulations.utils import post_processing
+from verbs_examples.uniswap import plotting, sim
+from verbs_examples.utils import post_processing
 
 if __name__ == "__main__":
 
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    with open(os.path.join("simulations", "uniswap", "cache.json"), "r") as f:
+    with open(os.path.join("verbs_examples", "uniswap", "cache.json"), "r") as f:
         cache_json = json.load(f)
 
     cache = verbs.utils.cache_from_json(cache_json)

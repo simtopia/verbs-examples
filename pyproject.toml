@@ -1,9 +1,9 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.setuptools]
-packages = ["simulations"]
+packages = ["verbs_examples"]
 
 [project]
 name = "verbs-examples"
@@ -38,9 +38,6 @@ dependencies = [
   "pandas",
   "pyarrow"
 ]
-
-[tool.hatch.metadata]
-allow-direct-references = true
 
 [tool.hatch.envs.dev]
 dependencies = [

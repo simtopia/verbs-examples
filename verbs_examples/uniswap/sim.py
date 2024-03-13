@@ -23,9 +23,12 @@ from typing import List
 
 import verbs
 
-from simulations import abis
-from simulations.agents import DummyUniswapAgent, UniswapAgent
-from simulations.utils.erc20 import mint_and_approve_dai, mint_and_approve_weth
+from verbs_examples import abis
+from verbs_examples.agents import DummyUniswapAgent, UniswapAgent
+from verbs_examples.utils.erc20 import (
+    mint_and_approve_dai,
+    mint_and_approve_weth,
+)
 
 PATH = Path(__file__).parent
 

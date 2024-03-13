@@ -6,8 +6,8 @@ from itertools import product
 import verbs
 from verbs.batch_runner import batch_run
 
-from simulations.aave import plotting, sim
-from simulations.utils import post_processing
+from verbs_examples.aave import plotting, sim
+from verbs_examples.utils import post_processing
 
 if __name__ == "__main__":
 
@@ -44,7 +44,7 @@ if __name__ == "__main__":
         0 < args.n_borrow_agents < 100
     ), "Number of borrow agents must be between 0 and 100"
 
-    with open(os.path.join("simulations", "aave", "cache.json"), "r") as f:
+    with open(os.path.join("verbs_examples", "aave", "cache.json"), "r") as f:
         cache_json = json.load(f)
 
     if args.cache:
