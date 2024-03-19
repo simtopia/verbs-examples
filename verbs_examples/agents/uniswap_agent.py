@@ -25,7 +25,7 @@ def tick_from_price(sqrt_price_x96: int, uniswap_fee: int) -> int:
 
     Returns
     -------
-    tick: int
+    int
         Lower tick of input price
     """
     price = (sqrt_price_x96 / 2**96) ** 2
@@ -744,7 +744,6 @@ class DummyUniswapAgent(BaseUniswapAgent):
         # token B is considered to be less risky / stablecoin
         token_b_address: bytes,
         sim_n_steps: int,
-        **kwargs,
     ):
         """
         Initialise the Uniswap agent and create the corresponding

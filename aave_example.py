@@ -79,14 +79,6 @@ if __name__ == "__main__":
         )
         post_processing.save(batch_results, path="results/sim_aave_uniswap")
     else:
-        # cache = sim.init_cache(
-        #     key="H4UA7VTf-gpUUyhD4GSCDSRvB1Blg3pV",
-        #     block_number = 19471508,
-        #     seed=args.seed,
-        #     n_steps=args.n_steps,
-        #     n_borrow_agents=args.n_borrow_agents
-        # )
-
         # run a single simulation
         env = verbs.envs.EmptyEnv(args.seed, cache=cache)
 
