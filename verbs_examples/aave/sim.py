@@ -23,19 +23,20 @@ We consider the following:
 * The liquidator agent checks whether a liquidation is profitable before making
   the liquidation call.
 
-.. note::
-    Profitablity is checked by the following accountability:
+Notes
+-----
+Profitability is checked by the following accountability:
 
-    * They check the amount of collateral that they would get by liquidation a
-      fraction of a loan.
-    * They check the price of the trade in Uniswap necessary to close the short
-      position in the debt asset.
-    * If they get a profit after closing their short position in the debt asset,
-      then they make the transaction.
+* They check the amount of collateral that they would get by liquidating a
+  fraction of a loan.
+* They check the price of the trade in Uniswap necessary to close the short
+  position in the debt asset.
+* If they get a profit after closing their short position in the debt asset,
+  then they make the transaction.
 
 References
 ----------
-https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
+#. https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
 """
 
 import json
@@ -45,14 +46,18 @@ from typing import List
 
 import verbs
 
-from simulations import abi
-from simulations.agents.borrow_agent import BorrowAgent
-from simulations.agents.liquidation_agent import (
+from verbs_examples import abis
+from verbs_examples.agents import (
     AdversarialLiquidationAgent,
+    BorrowAgent,
+    DummyUniswapAgent,
     LiquidationAgent,
+    UniswapAgent,
 )
-from simulations.agents.uniswap_agent import DummyUniswapAgent, UniswapAgent
-from simulations.utils.erc20 import mint_and_approve_dai, mint_and_approve_weth
+from verbs_examples.utils.erc20 import (
+    mint_and_approve_dai,
+    mint_and_approve_weth,
+)
 
 PATH = Path(__file__).parent
 
@@ -115,7 +120,7 @@ def runner(
     # Use uniswap_factory contract to get the address of WETH-DAI pool
     fee = 3000
 
-    pool_address = abi.uniswap_factory.getPool.call(
+    pool_address = abis.uniswap_factory.getPool.call(
         env,
         verbs.utils.ZERO_ADDRESS,
         verbs.utils.hex_to_bytes(UNISWAP_V3_FACTORY),
@@ -148,20 +153,20 @@ def runner(
         i=10,
         mu=mu,
         sigma=sigma,
-        swap_router_abi=abi.swap_router,
+        swap_router_abi=abis.swap_router,
         swap_router_address=swap_router_address,
-        quoter_abi=abi.quoter,
+        quoter_abi=abis.quoter,
         quoter_address=quoter_address,
         token_a_address=weth_address,
         token_b_address=dai_address,
-        uniswap_pool_abi=abi.uniswap_pool,
+        uniswap_pool_abi=abis.uniswap_pool,
         uniswap_pool_address=uniswap_weth_dai,
     )
 
     # Mint and approve tokens
     mint_and_approve_weth(
         env=env,
-        weth_abi=abi.weth_erc20,
+        weth_abi=abis.weth_erc20,
         weth_address=weth_address,
         recipient=uniswap_agent.address,
         contract_approved_address=swap_router_address,
@@ -169,7 +174,7 @@ def runner(
     )
     mint_and_approve_dai(
         env=env,
-        dai_abi=abi.dai,
+        dai_abi=abis.dai,
         dai_address=dai_address,
         contract_approved_address=swap_router_address,
         dai_admin_address=dai_admin_address,
@@ -184,9 +189,9 @@ def runner(
         BorrowAgent(
             env=env,
             i=100 + i,
-            pool_implementation_abi=abi.aave_pool,
-            oracle_abi=abi.aave_oracle,
-            mintable_erc20_abi=abi.weth_erc20,
+            pool_implementation_abi=abis.aave_pool,
+            oracle_abi=abis.aave_oracle,
+            mintable_erc20_abi=abis.weth_erc20,
             pool_address=aave_pool_address,
             oracle_address=aave_oracle_address,
             token_a_address=weth_address,
@@ -200,7 +205,7 @@ def runner(
     for borrow_agent in borrow_agents:
         mint_and_approve_weth(
             env=env,
-            weth_abi=abi.weth_erc20,
+            weth_abi=abis.weth_erc20,
             weth_address=weth_address,
             recipient=borrow_agent.address,
             contract_approved_address=aave_pool_address,
@@ -211,10 +216,10 @@ def runner(
     # Replace Chainlink with our price aggregation
     # ----------------------------------------------
 
-    uniswap_aggregator_address = abi.uniswap_aggregator.constructor.deploy(
+    uniswap_aggregator_address = abis.uniswap_aggregator.constructor.deploy(
         env,
         verbs.utils.ZERO_ADDRESS,
-        abi.UNISWAP_AGGREGATOR_BYTECODE,
+        abis.UNISWAP_AGGREGATOR_BYTECODE,
         [
             uniswap_weth_dai,
             weth_address,
@@ -224,23 +229,23 @@ def runner(
 
     # We load the dummy Mock Aggregator contract that keeps the price of a
     # token constant (that will be our numeraire)
-    mock_aggregator_address = abi.mock_aggregator.constructor.deploy(
-        env, verbs.utils.ZERO_ADDRESS, abi.MOCK_AGGREGATOR_BYTECODE, [10**8]
+    mock_aggregator_address = abis.mock_aggregator.constructor.deploy(
+        env, verbs.utils.ZERO_ADDRESS, abis.MOCK_AGGREGATOR_BYTECODE, [10**8]
     )
 
-    aave_acl_admin = abi.aave_pool_addresses_provider.getACLAdmin.call(
+    aave_acl_admin = abis.aave_pool_addresses_provider.getACLAdmin.call(
         env, verbs.utils.ZERO_ADDRESS, aave_address_provider, []
     )[0][0]
     aave_acl_admin_address = verbs.utils.hex_to_bytes(aave_acl_admin)
 
-    pool_admin_role = abi.aave_acl_manager.POOL_ADMIN_ROLE.call(
+    pool_admin_role = abis.aave_acl_manager.POOL_ADMIN_ROLE.call(
         env,
         aave_acl_admin_address,
         aave_acl_manager_address,
         [],
     )[0][0]
 
-    abi.aave_acl_manager.grantRole.execute(
+    abis.aave_acl_manager.grantRole.execute(
         env,
         aave_acl_admin_address,
         aave_acl_manager_address,
@@ -250,7 +255,7 @@ def runner(
         ],
     )
 
-    abi.aave_oracle.setAssetSources.execute(
+    abis.aave_oracle.setAssetSources.execute(
         env,
         aave_acl_admin_address,
         verbs.utils.hex_to_bytes(AAVE_ORACLE),
@@ -266,7 +271,7 @@ def runner(
     liquidation_agent_type = (
         partial(
             AdversarialLiquidationAgent,
-            aave_oracle_abi=abi.aave_oracle,
+            aave_oracle_abi=abis.aave_oracle,
             aave_oracle_address=aave_oracle_address,
         )
         if adversarial_liquidator
@@ -275,15 +280,15 @@ def runner(
     liquidation_agent = liquidation_agent_type(
         env=env,
         i=1000,
-        pool_implementation_abi=abi.aave_pool,
-        mintable_erc20_abi=abi.weth_erc20,
+        pool_implementation_abi=abis.aave_pool,
+        mintable_erc20_abi=abis.weth_erc20,
         pool_address=aave_pool_address,
         token_a_address=weth_address,
         token_b_address=dai_address,
         liquidation_addresses=[borrow_agent.address for borrow_agent in borrow_agents],
-        uniswap_pool_abi=abi.uniswap_pool,
-        quoter_abi=abi.quoter,
-        swap_router_abi=abi.swap_router,
+        uniswap_pool_abi=abis.uniswap_pool,
+        quoter_abi=abis.quoter,
+        swap_router_abi=abis.swap_router,
         uniswap_pool_address=uniswap_weth_dai,
         quoter_address=verbs.utils.hex_to_bytes(UNISWAP_QUOTER),
         swap_router_address=swap_router_address,
@@ -292,7 +297,7 @@ def runner(
 
     mint_and_approve_weth(
         env=env,
-        weth_abi=abi.weth_erc20,
+        weth_abi=abis.weth_erc20,
         weth_address=weth_address,
         recipient=liquidation_agent.address,
         contract_approved_address=swap_router_address,
@@ -300,7 +305,7 @@ def runner(
     )
     mint_and_approve_dai(
         env=env,
-        dai_abi=abi.dai,
+        dai_abi=abis.dai,
         dai_address=dai_address,
         contract_approved_address=aave_pool_address,
         dai_admin_address=dai_admin_address,
@@ -330,7 +335,7 @@ def init_cache(
     Generate a simulation request cache
 
     Run a simulation from a fork and store a cache of
-    data request foe use in other simulations.
+    data request for use in other simulations.
 
     Parameters
     ----------
@@ -351,7 +356,7 @@ def init_cache(
 
     Returns
     -------
-    cache: verbs.types.Cache
+    verbs.types.Cache
         Cache generated using :py:meth:`verbs.envs.ForkEnv.export_cache`.
     """
     # Fork environment from mainnet

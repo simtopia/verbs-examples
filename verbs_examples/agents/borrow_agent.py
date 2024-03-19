@@ -32,7 +32,7 @@ class BorrowAgent:
 
         The agent stores the ABIs of the Aave contracts and the token
         contracts that they will be interacting with. ABIs are loaded
-        using the function `:py:func:verbs.abi.load_abi`.
+        using the function :py:func:`verbs.abi.load_abi`.
 
         Parameters
         ----------
@@ -97,7 +97,7 @@ class BorrowAgent:
 
         Parameters
         ----------
-        rng: np.random.Generator
+        rng: numpy.random.Generator
             Numpy random generator, used for any random sampling
             to ensure determinism of the simulation.
         env: verbs.types.Env
@@ -105,10 +105,10 @@ class BorrowAgent:
 
         Returns
         -------
-        list[Transaction]
+        list
             List of transactions to be processed in the next block
             of the simulation. This can be an empty list if the
-            agent is not submitting any transacti
+            agent is not submitting any transactions.
 
         """
         self.step += 1
@@ -168,15 +168,14 @@ class BorrowAgent:
 
         Returns
         -------
-        self.step: int
-            Step of the simulation.
-        health_factor: float
-            Health factor of the borrower's position at the current step.
-        collateral_base: float
-            Collateral value of the borrower's position in the base currency
-            In Aave the base currency is USD and it has 8 decimal places
-        debt_base: float
-            Debt asset value of the borrower's position in the base currency
+        tuple[int, float, float, float]
+            Tuple containing:
+
+            - Step of the simulation.
+            - Health factor of the borrower's position at the current step.
+            - Collateral value of the borrower's position in the base currency
+              In Aave the base currency is USD and it has 8 decimal places
+            - Debt asset value of the borrower's position in the base currency
         """
 
         user_data = self.pool_implementation_abi.getUserAccountData.call(

@@ -1,9 +1,9 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.setuptools]
-packages = ["simulations"]
+packages = ["verbs_examples"]
 
 [project]
 name = "verbs-examples"
@@ -39,9 +39,6 @@ dependencies = [
   "pyarrow"
 ]
 
-[tool.hatch.metadata]
-allow-direct-references = true
-
 [tool.hatch.envs.dev]
 dependencies = [
   "pre-commit >= 3.3.3",
@@ -54,13 +51,13 @@ lint = "pre-commit install && pre-commit run --all-files"
 uniswap = "python uniswap_example.py {args}"
 aave = "python aave_example.py {args}"
 
-[tool.hatch.envs.sphinx]
+[tool.hatch.envs.docs]
 dependencies = [
   "sphinx >= 7.2.6",
   "furo >= 2023.9.10",
   "sphinx-copybutton >= 0.5.2",
 ]
 
-[tool.hatch.envs.sphinx.scripts]
-build = "sphinx-build -W -b html docs/source docs/build"
+[tool.hatch.envs.docs.scripts]
+build = "pip list && sphinx-build -W -b html docs/source docs/build"
 test = "sphinx-build -W -b doctest docs/source docs/build"

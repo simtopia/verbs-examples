@@ -6,4 +6,4 @@ Reference
    :template: custom-module-template.rst
    :recursive:
 
-   simulations
+   verbs_examples

@@ -19,7 +19,7 @@ def tick_from_price(sqrt_price_x96: int, uniswap_fee: int) -> int:
     Parameters
     ----------
     sqrt_price_x96: int
-        Square root of price times 2**96
+        Square root of price times 2\ :sup:`96`
     uniswap_fee: int
         Uniswap fee. Possible values [100,500,3000,10000]
 
@@ -40,13 +40,13 @@ def price_from_tick(tick: int) -> int:
 
     Parameters
     ----------
-    int
+    tick: int
         Lower tick of input price
 
     Returns
     -------
     int
-        Square root of price times 2**96
+        Square root of price times 2\ :sup:`96`
     """
     sqrt_price_x96 = np.sqrt(1.0001**tick) * 2**96
     return sqrt_price_x96
@@ -56,8 +56,9 @@ class Gbm:
     """
     Geometric brownian motion modelling the price of two tokens
 
-    .. note::
-        We assume that token B is some stablecoin so its price remains constant.
+    Notes
+    -----
+    We assume that token B is some stablecoin so its price remains constant.
     """
 
     def __init__(
@@ -90,13 +91,15 @@ class Gbm:
 
         Update GBM price using:
 
-        * :math:`P^a_{t+dt} = P^a_t * exp((\\mu-0.5*\\sigma^2)dt + \sigma * (W_{t+dt} - W_{t}))`  # noqa E501
+        * :math:`P^a_{t+dt} = P^a_t * exp((\\mu-0.5*\\sigma^2)dt +
+          \sigma * (W_{t+dt} - W_{t}))`
         * :math:`P^{a, impact}_{t+dt} = P^a_{t+dt} + price_impact`
         * :math:`P^b` is constant
 
-        .. note::
-            We consider an impact on the price of token A. This impact can be modelled
-            in different ways, e.g. as a transient price impact given by the trades.
+        Notes
+        -----
+        We consider an impact on the price of token A. This impact can be modelled
+        in different ways, e.g. as a transient price impact given by the trades.
 
         Parameters
         ----------
@@ -121,15 +124,15 @@ class Gbm:
         """
         Get price of token A in terms of token B
 
-        .. note::
-            We return args.n_steps square root of the price times 2**96
-            for a fair comparison with the price values returnd by
-            the Uniswap contract.
+        Notes
+        -----
+        We return the square root of the price times 2\ :sup:`96` for a fair comparison
+        with the price values returned by the Uniswap contract.
 
         Returns
         -------
-        sqrt_price_token_a_x96: float
-            Square root of the price of token A in terms of token B times 2**96
+        float
+            Square root of the price of token A in terms of token B times 2\ :sup:`96`
         """
         price = self.token_a_price_with_impact / self.token_b_price
         return np.sqrt(price) * 2**96
@@ -138,14 +141,15 @@ class Gbm:
         """
         Get price of token B in terms of token A
 
-        .. note::
-            We return the square root of the price times 2**96 for a fair comparison
-            with the price values returnd by the Uniswap contract.
+        Notes
+        -----
+        We return the square root of the price times 2\ :sup:`96`  for a fair comparison
+        with the price values returned by the Uniswap contract.
 
         Returns
         -------
-        sqrt_price_token_a_x96: float
-            Square root of the price of token B in terms of token A times 2**96
+        float
+            Square root of the price of token B in terms of token A times 2\ :sup:`96`
         """
         price = self.token_b_price / self.token_a_price_with_impact
         return np.sqrt(price) * 2**96
@@ -181,7 +185,7 @@ class BaseUniswapAgent:
 
         The agent stores the ABIs of the Uniswap contracts
         and the token contracts that they will be interacting with.
-        ABIs are previously loaded using the function `:py:func:verbs.abi.load_abi`.
+        ABIs are previously loaded using the function :py:func:`verbs.abi.load_abi`.
 
         Parameters
         ----------
@@ -200,7 +204,7 @@ class BaseUniswapAgent:
         swap_router_address: bytes
             Address of the SwapRouter contract
         uniswap_pool_address: bytes
-            Addres of Uniswap v3 pool for the pair (token_a, token_b)
+            Address of Uniswap v3 pool for the pair (token_a, token_b)
         quoter_address: bytes
             Address of the QuoterV2 contract
         token_a_address: bytes
@@ -231,12 +235,14 @@ class BaseUniswapAgent:
         self.fee = fee
 
     def get_sqrt_price_x96_uniswap(self, env) -> int:
-        """get sqrt price from uniswap pool.
+        """
+        Get sqrt price from uniswap pool
 
         Uniswap returns price of token0 in terms of token1
 
-        .. note::
-            Uniswap sorts of token0 and token1 by their addresses.
+        Notes
+        -----
+        Uniswap sorts of token0 and token1 by their addresses.
 
         Parameters
         ----------
@@ -245,8 +251,8 @@ class BaseUniswapAgent:
 
         Returns
         -------
-        sqrt_price_uniswap_x96: int
-            Square root of the price times 2**96 of token0 in terms of token1
+        int
+            Square root of the price times 2\ :sup:`96` of token0 in terms of token1
         """
 
         slot0 = self.uniswap_pool_abi.slot0.call(
@@ -273,20 +279,21 @@ class BaseUniswapAgent:
         numeraire (in our case the debt asset), and P is the price of the
         collateral in terms of the numeraire.
 
-        If there is a tick range and `exact=True`, the agent performs
+        If there is a tick range and ``exact=True``, the agent performs
         an iterative calculation to find the right trade.
 
-        .. note::
-            Ref: https://atiselsts.github.io/pdfs/uniswap-v3-liquidity-math.pdf
+        References
+        ----------
+        #. https://atiselsts.github.io/pdfs/uniswap-v3-liquidity-math.pdf
 
         Parameters
         ----------
         env: verbs.types.Env
             Simulation environment
         sqrt_target_price_x96: int
-            Sqrt of target price times 2**96
+            Sqrt of target price times 2\ :sup:`96`
         sqrt_price_uniswap_x96: int
-            Sqrt of current uniswap price times 2**96
+            Sqrt of current uniswap price times 2\ :sup:`96`
         liquidity: int
             Liquidity of Uniswap in the current tick range
         exact: bool
@@ -295,8 +302,8 @@ class BaseUniswapAgent:
 
         Returns
         -------
-        tx: verbs.types.Transaction
-            Trade
+        verbs.types.Transaction
+            Trade transaction
         """
 
         change_sqrt_price_x96 = sqrt_target_price_x96 - sqrt_price_uniswap_x96
@@ -373,20 +380,21 @@ class BaseUniswapAgent:
         the numeraire (in our case the debt asset), and P is the price
         of the collateral in terms of the numeraire.
 
-        If there is a tick range and `exact=True`, the agent performs
+        If there is a tick range and ``exact=True``, the agent performs
         an iterative calculation to find the right trade.
 
-        .. note::
-            Ref: https://atiselsts.github.io/pdfs/uniswap-v3-liquidity-math.pdf
+        References
+        ----------
+        #. https://atiselsts.github.io/pdfs/uniswap-v3-liquidity-math.pdf
 
         Parameters
         ----------
         env: verbs.types.Env
             Simulation environment
         sqrt_target_price_x96: int
-            Sqrt of target price times 2**96
+            Sqrt of target price times 2\ :sup:`96`
         sqrt_price_uniswap_x96: int
-            Sqrt of current uniswap price times 2**96
+            Sqrt of current uniswap price times 2\ :sup:`96`
         liquidity: int
             Liquidity of Uniswap in the current tick range
         exact: bool
@@ -395,8 +403,8 @@ class BaseUniswapAgent:
 
         Returns
         -------
-        tx: verbs.types.Transaction
-            Trade
+        verbs.types.Transaction
+            Trade transaction
         """
 
         change_sqrt_price_x96 = sqrt_price_uniswap_x96 - sqrt_target_price_x96
@@ -459,7 +467,7 @@ class BaseUniswapAgent:
 class UniswapAgent(BaseUniswapAgent):
     """
     Agent that makes trades in Uniswap and the external market in order
-    to make arbitrage.
+    to make arbitrage
     """
 
     def __init__(
@@ -482,12 +490,11 @@ class UniswapAgent(BaseUniswapAgent):
         dt: float,
     ):
         """
-        Initialise the Uniswap agent and create the corresponding
-        account in the EVM.
+        Initialise the Uniswap agent and create the account
 
         The agent stores the ABIs of the Uniswap contracts
         and the token contracts that they will be interacting with.
-        ABIs are previously loaded using the function `:py:func:verbs.abi.load_abi`.
+        ABIs are previously loaded using the function :py:func:`verbs.abi.load_abi`.
 
         The agent also has access to an external market, modelled by a Gbm,
         that is set as an attribute of the agents.
@@ -537,7 +544,7 @@ class UniswapAgent(BaseUniswapAgent):
             token_b_address=token_b_address,
         )
 
-        # external market model.
+        # External market model.
         # we initialise it at the same price as the Uniswap price
         # Uniswap returns price of token0 in terms of token1
         sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap(env)
@@ -583,10 +590,10 @@ class UniswapAgent(BaseUniswapAgent):
 
         Returns
         -------
-        list[Transaction]
+        list
             List of transactions to be processed in the next block
             of the simulation. This can be an empty list if the
-            agent is not submitting any transacti
+            agent is not submitting any transactions.
 
         """
         # get sqrt price from uniswap pool. Uniswap returns price of
@@ -663,11 +670,10 @@ class UniswapAgent(BaseUniswapAgent):
 
         Returns
         -------
-        price_uniswap: float
-            Price in Uniswap of token0 in terms of token1
-        price_external_market: float
-            Price in the external market of token0 in terms of token1
-
+        tuple[float, float]
+            Tuple containing:
+            - Price in Uniswap of token0 in terms of token1
+            - Price in the external market of token0 in terms of token1
         """
         # Get sqrt price from uniswap pool. Uniswap returns price of
         # token0 in terms of token1
@@ -701,7 +707,7 @@ class UniswapAgent(BaseUniswapAgent):
 
         Returns
         -------
-        impact: float
+        float
             Transient impact
         """
         sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap(env)
@@ -746,17 +752,18 @@ class DummyUniswapAgent(BaseUniswapAgent):
 
         The agent stores the ABIs of the Uniswap contracts
         and the token contracts that they will be interacting with.
-        ABIs are previously loaded using the function `:py:func:verbs.abi.load_abi`.
+        ABIs are previously loaded using the function :py:func:`verbs.abi.load_abi`.
 
         The agent also has access to an external market, modelled by a Gbm,
         that is set as an attribute of the agents.
 
-        .. note::
-            This agent should only be used in a simulation to initialise the Cache
-            of the EVM database. The drift and the volatility of the external market
-            are artificially calibrated in order for the agent to explore a wide range
-            of Uniswap price ticks and thus find out the right storage slots to be
-            saved in the Cache.
+        Notes
+        -----
+        This agent should only be used in a simulation to initialise the Cache
+        of the EVM database. The drift and the volatility of the external market
+        are artificially calibrated in order for the agent to explore a wide range
+        of Uniswap price ticks and thus find out the right storage slots to be
+        saved in the Cache.
 
         Parameters
         ----------
@@ -823,7 +830,7 @@ class DummyUniswapAgent(BaseUniswapAgent):
         Update the state of the agent
 
         Makes an exploratory update by manually changing
-        the drift of the external market
+        the drift of the external market.
 
         Parameters
         ----------
@@ -835,7 +842,7 @@ class DummyUniswapAgent(BaseUniswapAgent):
 
         Returns
         -------
-        list[Transaction]
+        list
             List of transactions to be processed in the next block
             of the simulation. This can be an empty list if the
             agent is not submitting any transacti
@@ -885,11 +892,10 @@ class DummyUniswapAgent(BaseUniswapAgent):
 
         Returns
         -------
-        price_uniswap: float
-            Price in Uniswap of token0 in terms of token1
-        price_external_market: float
-            Price in the external market of token0 in terms of token1
-
+        tuple[float, float]
+            Tuple containing:
+            - Price in Uniswap of token0 in terms of token1
+            - Price in the external market of token0 in terms of token1
         """
         # Get sqrt price from uniswap pool. Uniswap returns price of
         # token0 in terms of token1

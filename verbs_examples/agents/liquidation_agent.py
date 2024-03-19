@@ -36,7 +36,7 @@ class LiquidationAgent:
 
         The agent stores the ABIs of the Aave contracts, the Uniswap contracts
         and the token contracts that they will be interacting with.
-        ABIs are previously loaded using the function `:py:func:verbs.abi.load_abi`.
+        ABIs are previously loaded using the function :py:func:`verbs.abi.load_abi`.
 
         Parameters
         ----------
@@ -54,7 +54,7 @@ class LiquidationAgent:
             Address of collateral token (usually the risky token)
         token_b_address: bytes
             Address of debt token (usually the less risky token)
-        liquidation_addresses: List[bytes]
+        liquidation_addresses: list[bytes]
             List of borrowers' addresses that the liquidator will be monitoring.
         uniswap_pool_abi: type
             abi of the Uniswap v3 pool contract
@@ -127,8 +127,8 @@ class LiquidationAgent:
 
         Returns
         -------
-        is_profitable: bool
-            Profitability of the liquidation
+        bool
+            ``True`` if the liquidation is profitable
         """
 
         try:
@@ -195,7 +195,7 @@ class LiquidationAgent:
 
         Returns
         -------
-        list[Transaction]
+        list
             List of transactions to be processed in the next block
             of the simulation. This can be an empty list if the
             agent is not submitting any transacti
@@ -298,11 +298,10 @@ class LiquidationAgent:
 
         Returns
         -------
-        current_balance_collateral_asset: float
-            Balance of collateral asset in the current step.
-        current_balance_debt_asset: float
-            Balance of debt asset in the current step.
-
+        tuple[float, float]
+            Tuple containing:
+            - Balance of collateral asset in the current step.
+            - Balance of debt asset in the current step.
         """
         current_balance_collateral_asset = self.mintable_erc20_abi.balanceOf.call(
             env,
@@ -330,7 +329,7 @@ class LiquidationAgent:
 class AdversarialLiquidationAgent(LiquidationAgent):
     """
     Liquidation agent that manipulates the price in Uniswap
-    to bring borrowers positions to distress
+    to bring borrowers positions into distress
     """
 
     def __init__(
@@ -359,7 +358,7 @@ class AdversarialLiquidationAgent(LiquidationAgent):
 
         The agent stores the ABIs of the Aave contracts, the Uniswap contracts
         and the token contracts that they will be interacting with.
-        ABIs are previously loaded using the function `:py:func:verbs.abi.load_abi`.
+        ABIs are previously loaded using the function :py:func:`verbs.abi.load_abi`.
 
         Parameters
         ----------
@@ -377,7 +376,7 @@ class AdversarialLiquidationAgent(LiquidationAgent):
             Address of collateral token (usually the risky token)
         token_b_address: bytes
             Address of debt token (usually the less risky token)
-        liquidation_addresses: List[bytes]
+        liquidation_addresses: list[bytes]
             List of borrowers' addresses that the liquidator will be monitoring.
         uniswap_pool_abi: type
             abi of the Uniswap v3 pool contract
@@ -397,7 +396,6 @@ class AdversarialLiquidationAgent(LiquidationAgent):
             abi of the Aave oracle contract for the pair (token_a, token_b)
         aave_oracle_address: bytes
             Address of the Aave oracle contract for the pair (token_a, token_b)
-
         """
         super().__init__(
             env,
@@ -448,8 +446,8 @@ class AdversarialLiquidationAgent(LiquidationAgent):
 
         Returns
         -------
-        is_profitable: bool
-            Profitability of the liquidation
+        bool
+            ``True`` if the liquidation is profitable.
         """
         if self.balance_debt_asset[-2] < self.balance_debt_asset[-1]:
             # The agents is long on the debt asset.
@@ -474,8 +472,10 @@ class AdversarialLiquidationAgent(LiquidationAgent):
         * Realize a profit on Uniswap by selling the collateral
           obtained from liquidations.
 
-        .. note::
-           See https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
+        References
+        ----------
+
+        #. https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4540333
 
         Parameters
         ----------
@@ -487,11 +487,10 @@ class AdversarialLiquidationAgent(LiquidationAgent):
 
         Returns
         -------
-        list[Transaction]
+        list
             List of transactions to be processed in the next block
             of the simulation. This can be an empty list if the
-            agent is not submitting any transacti
-
+            agent is not submitting any transactions.
         """
         # liquidation transactions + closing short collateral position on Uniswap
         tx = super().update(rng, env)
