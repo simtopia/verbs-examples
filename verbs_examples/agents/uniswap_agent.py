@@ -744,6 +744,7 @@ class DummyUniswapAgent(BaseUniswapAgent):
         # token B is considered to be less risky / stablecoin
         token_b_address: bytes,
         sim_n_steps: int,
+        **kwargs
     ):
         """
         Initialise the Uniswap agent and create the corresponding
