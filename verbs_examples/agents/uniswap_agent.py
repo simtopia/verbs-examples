@@ -845,7 +845,7 @@ class DummyUniswapAgent(BaseUniswapAgent):
         list
             List of transactions to be processed in the next block
             of the simulation. This can be an empty list if the
-            agent is not submitting any transacti
+            agent is not submitting any transactions.
         """
 
         sqrt_target_price_x96 = price_from_tick(self.ticks_to_explore[self.step])

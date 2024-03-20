@@ -34,6 +34,12 @@ if __name__ == "__main__":
         type=str,
         help="Generate a new request cache file.",
     )
+    parser.add_argument(
+        "--block",
+        type=int,
+        default=19163600,
+        help="Ethereum Block number for mainnet forking",
+    )
     args = parser.parse_args()
 
     with open(os.path.join("verbs_examples", "uniswap", "cache.json"), "r") as f:
@@ -45,7 +51,7 @@ if __name__ == "__main__":
         ), "Alchemy key required, set with '--alchemy_key' argument"
         cache = sim.init_cache(
             args.alchemy_key,
-            19163600,
+            args.block,
             args.seed,
             args.n_steps,
         )
