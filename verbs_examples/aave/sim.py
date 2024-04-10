@@ -360,7 +360,7 @@ def init_cache(
         Cache generated using :py:meth:`verbs.envs.ForkEnv.export_cache`.
     """
     # Fork environment from mainnet
-    env = verbs.envs.ForkEnv(
+    env = verbs.envs.ForkEnvRandom(
         "https://eth-mainnet.g.alchemy.com/v2/{}".format(key),
         seed,
         block_number,

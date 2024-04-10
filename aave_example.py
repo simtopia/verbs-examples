@@ -82,7 +82,7 @@ if __name__ == "__main__":
         post_processing.save(batch_results, path="results/sim_aave_uniswap")
     else:
         # run a single simulation
-        env = verbs.envs.EmptyEnv(args.seed, cache=cache)
+        env = verbs.envs.EmptyEnvRandom(args.seed, cache=cache)
 
         results = sim.runner(
             env,
