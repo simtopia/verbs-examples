@@ -157,8 +157,6 @@ def init_cache(
     block_number: int,
     seed: int,
     n_steps: int,
-    mu: float = 0.1,
-    sigma: float = 0.6,
 ) -> verbs.types.Cache:
     """
     Generate a simulation request cache
@@ -176,10 +174,6 @@ def init_cache(
         Random seed
     n_steps: int
         Number of simulation steps
-    mu: float, optional
-        GBM mu parameter, default 0.1
-    sigma: float, optional
-        GBM sigma parameter, default 0.6
 
     Returns
     -------
@@ -197,8 +191,6 @@ def init_cache(
         env,
         seed,
         n_steps,
-        mu=mu,
-        sigma=sigma,
         uniswap_agent_type=partial(DummyUniswapAgent, sim_n_steps=n_steps),
     )
 

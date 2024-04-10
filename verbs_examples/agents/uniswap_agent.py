@@ -29,7 +29,7 @@ def tick_from_price(sqrt_price_x96: int, uniswap_fee: int) -> int:
         Lower tick of input price
     """
     price = (sqrt_price_x96 / 2**96) ** 2
-    tick = math.floor(math.log(price, 1.001))
+    tick = math.floor(math.log(price, 1.0001))
     tick_lower = tick - (tick % TICK_SPACING[uniswap_fee])
     return tick_lower
 
@@ -48,7 +48,7 @@ def price_from_tick(tick: int) -> int:
     int
         Square root of price times 2\ :sup:`96`
     """
-    sqrt_price_x96 = np.sqrt(1.001**tick) * 2**96
+    sqrt_price_x96 = np.sqrt(1.0001**tick) * 2**96
     return sqrt_price_x96
 
 
@@ -336,7 +336,7 @@ class BaseUniswapAgent:
             try:
                 sol = root_scalar(
                     lambda x: _quote_price(x) - sqrt_target_price_x96,
-                    x0=change_token_1,
+                    x0=change_token_1 // 2,
                     method="newton",
                     maxiter=5,
                 )
@@ -438,7 +438,7 @@ class BaseUniswapAgent:
                 sol = root_scalar(
                     lambda x: _quote_price(x) - sqrt_target_price_x96,
                     method="newton",
-                    x0=change_token_1,
+                    x0=change_token_1 // 2,
                     maxiter=5,
                 )
                 change_token_1 = sol.root
@@ -577,7 +577,6 @@ class UniswapAgent(BaseUniswapAgent):
         list of transactions according to their policy.
 
         The Uniswap agent will
-
         * Check the price in the external market and in the Uniswap pool.
         * Calculate the trade to do in Uniswap in order to realize a profit.
 
@@ -720,7 +719,7 @@ class UniswapAgent(BaseUniswapAgent):
         return token_a_price_uniswap - token_a_price_external
 
 
-class DummyUniswapAgent(UniswapAgent):
+class DummyUniswapAgent(BaseUniswapAgent):
     """
     Dummy uniswap agent used for cache generation
 
@@ -744,10 +743,8 @@ class DummyUniswapAgent(UniswapAgent):
         token_a_address: bytes,
         # token B is considered to be less risky / stablecoin
         token_b_address: bytes,
-        mu: float,
-        sigma: float,
-        dt: float,
         sim_n_steps: int,
+        **kwargs
     ):
         """
         Initialise the Uniswap agent and create the corresponding
@@ -807,32 +804,26 @@ class DummyUniswapAgent(UniswapAgent):
             swap_router_abi=swap_router_abi,
             uniswap_pool_abi=uniswap_pool_abi,
             quoter_abi=quoter_abi,
+            fee=fee,
             swap_router_address=swap_router_address,
             uniswap_pool_address=uniswap_pool_address,
             quoter_address=quoter_address,
-            fee=fee,
             token_a_address=token_a_address,
             token_b_address=token_b_address,
-            mu=mu,
-            sigma=0,
-            dt=dt,
         )
         self.sim_n_steps = sim_n_steps
 
-        # calibrate mu to explore the pool
-        upper_bound_price = 1.7 * self.init_token_a_price
-        lower_bound_price = 0.3 * self.init_token_a_price
-
-        self.mu0 = (
-            1
-            / (dt * float(sim_n_steps // 3))
-            * np.log(upper_bound_price / self.init_token_a_price)
+        slot0 = self.uniswap_pool_abi.slot0.call(
+            env, self.address, self.uniswap_pool_address, []
+        )[0]
+        init_tick = slot0[1]
+        self.ticks_to_explore = [
+            init_tick + (i + 1) * TICK_SPACING[fee] for i in range(sim_n_steps // 2)
+        ]
+        self.ticks_to_explore.extend(
+            [init_tick - (i + 1) * TICK_SPACING[fee] for i in range(sim_n_steps // 2)]
         )
-        self.mu1 = (
-            1
-            / (dt * sim_n_steps - dt * float(sim_n_steps // 3))
-            * np.log(lower_bound_price / upper_bound_price)
-        )
+        self.step = 0
 
     def update(self, rng: np.random.Generator, env) -> List[verbs.types.Transaction]:
         """
@@ -856,9 +847,58 @@ class DummyUniswapAgent(UniswapAgent):
             of the simulation. This can be an empty list if the
             agent is not submitting any transactions.
         """
-        if self.step < self.sim_n_steps // 3:
-            self.external_market.mu = self.mu0
+
+        sqrt_target_price_x96 = price_from_tick(self.ticks_to_explore[self.step])
+        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap(env)
+
+        # get liquidity from uniswap pool
+        liquidity = self.uniswap_pool_abi.liquidity.call(
+            env, self.address, self.uniswap_pool_address, []
+        )[0][0]
+
+        if sqrt_target_price_x96 > sqrt_price_uniswap_x96:
+            swap_call = self.get_swap_size_to_increase_uniswap_price(
+                env=env,
+                sqrt_target_price_x96=sqrt_target_price_x96,
+                sqrt_price_uniswap_x96=sqrt_price_uniswap_x96,
+                liquidity=liquidity,
+            )
         else:
-            self.external_market.mu = self.mu1
-        tx = super().update(rng, env)
-        return tx
+            swap_call = self.get_swap_size_to_decrease_uniswap_price(
+                env=env,
+                sqrt_target_price_x96=sqrt_target_price_x96,
+                sqrt_price_uniswap_x96=sqrt_price_uniswap_x96,
+                liquidity=liquidity,
+            )
+        self.step += 1
+
+        if swap_call is not None:
+            return [swap_call]
+        else:
+            return []
+
+    def record(self, env) -> Tuple[float, float]:
+        """
+        Record the state of the agent
+
+        This method is called at the end of each step for all agents.
+        It should return any data to be recorded over the course
+        of the simulation.
+
+        Parameters
+        ----------
+        env: verbs.types.Env
+            Network/EVM that the simulation interacts with.
+
+        Returns
+        -------
+        tuple[float, float]
+            Tuple containing:
+            - Price in Uniswap of token0 in terms of token1
+            - Price in the external market of token0 in terms of token1
+        """
+        # Get sqrt price from uniswap pool. Uniswap returns price of
+        # token0 in terms of token1
+        sqrt_target_price_x96 = price_from_tick(self.ticks_to_explore[self.step - 1])
+        sqrt_price_uniswap_x96 = self.get_sqrt_price_x96_uniswap(env)
+        return sqrt_price_uniswap_x96**2, sqrt_target_price_x96**2
