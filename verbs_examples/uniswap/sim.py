@@ -69,7 +69,7 @@ def runner(
         GBM sigma parameter, default 0.3
     uniswap_agent_type: BaseUniswapAgent, optional
         Either UniswapAgent or DummyUniswapAgent, depending
-        on wheter the simulation is initialising the Cache or not
+        on whether the simulation is initialising the Cache or not
     show_progress: bool, optional
         If ``True`` simulation progress will be printed
 
@@ -182,7 +182,7 @@ def init_cache(
     """
 
     # Fork environment from mainnet
-    env = verbs.envs.ForkEnv(
+    env = verbs.envs.ForkEnvRandom(
         "https://eth-mainnet.g.alchemy.com/v2/{}".format(key),
         seed,
         block_number,
